@@ -1,0 +1,20 @@
+
+[
+  {
+    "id": 1,
+    "kode": "INV-0001",
+    "tanggal": "2026-07-16",
+    "divisi": "Operasional",
+    "nama": "Laptop ASUS Vivobook",
+    "qty": 1,
+    "harga": 8500000,
+    "status": "Aktif",
+    "foto": "https://placehold.co/600x400",
+    "kelengkapan": [
+      "Charger",
+      "Tas Laptop",
+      "Mouse Wireless",
+      "Surat Garansi"
+    ]
+  }
+]
