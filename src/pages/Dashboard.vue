@@ -186,24 +186,54 @@ onMounted(() => {
           {{ barang.kode }}
         </p>
 
-        <div class="mt-4 space-y-2">
+<div class="mt-5 space-y-4">
 
-          <p>
-            <b>Divisi :</b>
-            {{ barang.divisi }}
-          </p>
+  <!-- PIC -->
+  <div class="flex items-start gap-3">
+    <div>
+      <p class="text-xs text-gray-500">👤 PIC</p>
+      <p class="font-semibold">
+        {{ barang.pic || "-" }}
+      </p>
+    </div>
+  </div>
 
-          <p>
-            <b>Qty :</b>
-            {{ barang.qty }}
-          </p>
+  <!-- Divisi -->
+  <div class="flex items-start gap-3">
+    <div>
+      <p class="text-xs text-gray-500">🏢 Divisi</p>
+      <p class="font-semibold">
+        {{ barang.divisi }}
+      </p>
+    </div>
+  </div>
 
-          <p>
-            <b>Status :</b>
-            {{ barang.status }}
-          </p>
+  <!-- Lokasi -->
+  <div class="flex items-start gap-3">
+    <div>
+      <p class="text-xs text-gray-500">📍 Lokasi</p>
+      <p class="font-semibold">
+        {{ barang.lokasi || "-" }}
+      </p>
+    </div>
+  </div>
 
-        </div>
+  <!-- Status -->
+  <div class="pt-2">
+    <span
+      class="inline-block px-3 py-1 rounded-full text-sm font-semibold"
+      :class="{
+        'bg-green-100 text-green-700': barang.status === 'Aktif',
+        'bg-yellow-100 text-yellow-700': barang.status === 'Maintenance',
+        'bg-red-100 text-red-700': barang.status === 'Rusak',
+        'bg-gray-200 text-gray-700': barang.status === 'Hilang'
+      }"
+    >
+      {{ barang.status }}
+    </span>
+  </div>
+
+</div>
 
         <div class="grid grid-cols-2 gap-3 mt-6">
 
