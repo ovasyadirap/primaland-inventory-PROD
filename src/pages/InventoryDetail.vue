@@ -10,6 +10,8 @@ import {
   Wallet,
   BadgeCheck,
   QrCode,
+  MapPin,
+  User,
 } from "lucide-vue-next";
 
 const route = useRoute();
@@ -155,6 +157,15 @@ onMounted(() => {
           {{ barang.nama }}
         </h2>
 
+        <!-- Lokasi -->
+        <div
+          v-if="barang.lokasi"
+          class="flex justify-center items-center gap-2 mt-2 text-gray-500"
+        >
+          <MapPin :size="18" class="text-green-700" />
+          <span>{{ barang.lokasi }}</span>
+        </div>
+
         <!-- Status -->
         <div class="flex justify-center mt-4">
 
@@ -222,6 +233,27 @@ onMounted(() => {
 
               <p class="font-semibold">
                 {{ barang.divisi }}
+              </p>
+
+            </div>
+
+          </div>
+          <!-- PIC -->
+          <div
+            v-if="barang.pic"
+            class="bg-gray-50 rounded-xl p-4 flex items-center gap-3"
+          >
+
+            <User class="text-green-700"/>
+
+            <div>
+
+              <p class="text-sm text-gray-500">
+                PIC
+              </p>
+
+              <p class="font-semibold">
+                {{ barang.pic }}
               </p>
 
             </div>

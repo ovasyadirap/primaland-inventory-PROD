@@ -7,11 +7,37 @@ const router = useRouter();
 
 const loading = ref(false);
 
+const uploadFoto = async (event) => {
+  const file = event.target.files[0];
+
+  if (!file) return;
+
+  const fileName = `${Date.now()}-${file.name}`;
+
+  const { error } = await supabase.storage
+    .from("inventory")
+    .upload(fileName, file);
+
+  if (error) {
+    alert("Upload foto gagal.");
+    console.error(error);
+    return;
+  }
+
+  const { data } = supabase.storage
+    .from("inventory")
+    .getPublicUrl(fileName);
+
+  form.value.foto = data.publicUrl;
+};
+
 const form = ref({
   kode: "",
   nama: "",
   kategori: "",
   divisi: "",
+  pic: "",
+  lokasi: "",
   tanggal: "",
   qty: 1,
   harga: "",
@@ -34,20 +60,22 @@ const simpanData = async () => {
 
   const { error } = await supabase
     .from("inventory")
-    .insert([
-      {
-        kode: form.value.kode,
-        nama: form.value.nama,
-        kategori: form.value.kategori,
-        divisi: form.value.divisi,
-        tanggal: form.value.tanggal,
-        qty: Number(form.value.qty),
-        harga: Number(form.value.harga),
-        status: form.value.status,
-        kelengkapan: form.value.kelengkapan,
-        foto: form.value.foto,
-      },
-    ]);
+      .insert([
+        {
+          kode: form.value.kode,
+          nama: form.value.nama,
+          kategori: form.value.kategori,
+          divisi: form.value.divisi,
+          pic: form.value.pic,
+          lokasi: form.value.lokasi,
+          tanggal: form.value.tanggal,
+          qty: Number(form.value.qty),
+          harga: Number(form.value.harga),
+          status: form.value.status,
+          kelengkapan: form.value.kelengkapan,
+          foto: form.value.foto,
+        },
+      ]);
 
   loading.value = false;
 
@@ -138,6 +166,30 @@ const simpanData = async () => {
             class="w-full mt-2 border rounded-xl p-3"
           />
         </div>
+        
+        <!-- PIC -->
+        <div>
+          <label class="font-semibold">PIC</label>
+
+          <input
+            v-model="form.pic"
+            type="text"
+            placeholder="Nama PIC"
+            class="w-full mt-2 border rounded-xl p-3"
+          />
+        </div>
+
+        <!-- Lokasi -->
+        <div>
+          <label class="font-semibold">Lokasi</label>
+
+          <input
+            v-model="form.lokasi"
+            type="text"
+            placeholder="Contoh: Gudang A"
+            class="w-full mt-2 border rounded-xl p-3"
+          />
+        </div>
 
         <!-- Tanggal -->
         <div>
@@ -195,8 +247,17 @@ const simpanData = async () => {
 
           <input
             type="file"
+            accept="image/*"
+            @change="uploadFoto"
             class="w-full mt-2 border rounded-xl p-2"
           />
+
+          <p
+            v-if="form.foto"
+            class="text-green-600 text-sm mt-2"
+          >
+            ✓ Foto berhasil diupload
+          </p>
         </div>
 
       </div>
@@ -212,10 +273,10 @@ const simpanData = async () => {
           v-model="form.kelengkapan"
           rows="5"
           placeholder="Contoh:
-- Charger
-- Mouse
-- Tas Laptop
-- Surat Garansi"
+          - Charger
+          - Mouse
+          - Tas Laptop
+          - Surat Garansi"
           class="w-full mt-2 border rounded-xl p-3"
         ></textarea>
 

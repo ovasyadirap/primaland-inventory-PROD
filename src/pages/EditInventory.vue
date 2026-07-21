@@ -14,7 +14,10 @@ const previewFoto = ref("");
 const form = ref({
   kode: "",
   nama: "",
+  kategori: "",
   divisi: "",
+  pic: "",
+  lokasi: "",
   tanggal: "",
   qty: 1,
   harga: "",
@@ -41,16 +44,19 @@ const loadData = async () => {
   }
 
   form.value = {
-    kode: data.kode,
-    nama: data.nama,
-    divisi: data.divisi,
-    tanggal: data.tanggal,
-    qty: data.qty,
-    harga: data.harga,
-    status: data.status,
-    kelengkapan: data.kelengkapan,
-    foto: data.foto,
-  };
+  kode: data.kode,
+  nama: data.nama,
+  kategori: data.kategori,
+  divisi: data.divisi,
+  pic: data.pic,
+  lokasi: data.lokasi,
+  tanggal: data.tanggal,
+  qty: data.qty,
+  harga: data.harga,
+  status: data.status,
+  kelengkapan: data.kelengkapan,
+  foto: data.foto,
+};
 
   previewFoto.value = data.foto;
 };
@@ -108,7 +114,10 @@ const updateData = async () => {
     .from("inventory")
     .update({
       nama: form.value.nama,
+      kategori: form.value.kategori,
       divisi: form.value.divisi,
+      pic: form.value.pic,
+      lokasi: form.value.lokasi,
       tanggal: form.value.tanggal,
       qty: Number(form.value.qty),
       harga: Number(form.value.harga),
@@ -184,12 +193,40 @@ onMounted(() => {
             class="w-full mt-2 border rounded-xl p-3"
           />
         </div>
+        <div>
+          <label class="font-semibold">Kategori</label>
+
+          <input
+            v-model="form.kategori"
+            class="w-full mt-2 border rounded-xl p-3"
+          />
+        </div>
+
+        
 
         <div>
           <label class="font-semibold">Divisi</label>
 
           <input
             v-model="form.divisi"
+            class="w-full mt-2 border rounded-xl p-3"
+          />
+        </div>
+
+        <div>
+          <label class="font-semibold">PIC</label>
+
+          <input
+            v-model="form.pic"
+            class="w-full mt-2 border rounded-xl p-3"
+          />
+        </div>
+
+        <div>
+          <label class="font-semibold">Lokasi</label>
+
+          <input
+            v-model="form.lokasi"
             class="w-full mt-2 border rounded-xl p-3"
           />
         </div>
