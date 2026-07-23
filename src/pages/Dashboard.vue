@@ -82,18 +82,18 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-100 p-6">
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-emerald-50 p-6">
 
     <!-- Header -->
     <div
-      class="bg-gradient-to-r from-green-700 to-emerald-600 text-white rounded-3xl p-8 shadow-xl"
-    >
-      <h1 class="text-3xl font-bold">
+      class="bg-gradient-to-r from-green-700 via-emerald-600 to-teal-500 text-white rounded-3xl p-8 shadow-2xl border border-white/20">
+
+      <h1 class="text-4xl font-extrabold tracking-wide">
         PRIMALAND 2
       </h1>
 
-      <p class="text-green-100 mt-2">
-        Inventory Management
+      <p class="text-green-100 mt-2 text-lg">
+        Inventory Management System
       </p>
     </div>
 
@@ -120,12 +120,12 @@ onMounted(() => {
         v-model="search"
         type="text"
         placeholder="Cari nama atau kode barang..."
-        class="flex-1 px-4 py-3 rounded-xl border border-gray-300 bg-white"
+        class="flex-1 px-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
       />
 
       <select
         v-model="selectedDivisi"
-        class="px-4 py-3 rounded-xl border border-gray-300 bg-white"
+        class="px-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none transition"
       >
         <option value="">Semua Divisi</option>
 
@@ -142,7 +142,7 @@ onMounted(() => {
     </div>
 
     <!-- Total -->
-    <div class="mt-6 bg-white rounded-3xl shadow-md p-6">
+    <div class="mt-6 bg-white rounded-3xl shadow-lg border border-slate-200 p-6">
 
       <p class="text-gray-500">
         Total Barang
@@ -160,7 +160,7 @@ onMounted(() => {
 <div
   v-for="barang in filteredInventory"
   :key="barang.id"
-  class="bg-white rounded-2xl border border-slate-200 border-t-4 border-t-emerald-500 shadow-sm hover:shadow-md transition-shadow p-5"
+  class="bg-white rounded-3xl border border-slate-200 border-t-[5px] border-t-emerald-500 shadow-md hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 ease-in-out p-5"
 >
 
   <!-- Foto -->
@@ -176,7 +176,7 @@ onMounted(() => {
     v-else
     :src="barang.foto"
     :alt="barang.nama"
-    class="w-full h-52 object-cover rounded-xl ring-1 ring-slate-100"
+    class="w-full h-52 object-cover rounded-2xl shadow-md"
   >
 
   <h3 class="text-lg font-bold text-slate-800 mt-4">
@@ -186,6 +186,16 @@ onMounted(() => {
   <p class="text-xs font-mono text-slate-400 tracking-wide mt-0.5">
     {{ barang.kode }}
   </p>
+
+  <div class="mt-3">
+
+  <span
+    class="inline-flex items-center bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold"
+  >
+    {{ barang.kategori || "Inventaris" }}
+  </span>
+
+</div>
 
   <!-- Info -->
   <div class="mt-4 space-y-3 border-t border-slate-100 pt-4">
@@ -223,6 +233,7 @@ onMounted(() => {
   </div>
 
   <!-- Status -->
+  <div class="border-t border-dashed border-slate-200 my-5"></div>
   <div class="mt-4">
     <span
       class="inline-block px-3 py-1 rounded-full text-xs font-semibold"
@@ -242,7 +253,7 @@ onMounted(() => {
 
     <RouterLink
       :to="`/inventory/${barang.kode}`"
-      class="text-center bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors"
+      class="text-center bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-semibold shadow hover:shadow-lg hover:bg-emerald-700 transition-all hover:-translate-y-0.5"
     >
       Detail
     </RouterLink>
@@ -273,6 +284,10 @@ onMounted(() => {
 </div>
 
     </div>
+    <footer class="mt-12 text-center text-sm text-slate-400">
 
+      © PRIMALAND 2 Inventory Management
+
+    </footer>
   </div>
 </template>
