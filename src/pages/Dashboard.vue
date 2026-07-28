@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { RouterLink } from "vue-router";
 import { supabase } from "../lib/supabase";
+import * as XLSX from "xlsx";
 
 const inventory = ref([]);
 const search = ref("");
@@ -74,6 +75,40 @@ const hapusBarang = async (id) => {
 };
 
 // =======================
+// Unduh Excel
+// =======================
+const downloadExcel = () => {
+  if (!filteredInventory.value.length) {
+    alert("Tidak ada data untuk diunduh.");
+    return;
+  }
+
+  const rows = filteredInventory.value.map((item) => ({
+    "Kode Barang": item.kode,
+    "Nama Barang": item.nama,
+    "Divisi": item.divisi,
+    "PIC": item.pic || "-",
+    "Lokasi": item.lokasi || "-",
+    "Harga": item.harga || 0,
+    "Status": item.status,
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+
+  worksheet["!cols"] = [
+    { wch: 18 }, { wch: 28 }, { wch: 15 },
+    { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
+  ];
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Inventaris");
+
+  const tanggal = new Date().toLocaleDateString("id-ID").replace(/\//g, "-");
+  XLSX.writeFile(workbook, `Daftar-Inventaris-Primaland2-${tanggal}.xlsx`);
+};
+
+
+// =======================
 // Saat Halaman Dibuka
 // =======================
 onMounted(() => {
@@ -105,12 +140,22 @@ onMounted(() => {
         Daftar Inventaris
       </h2>
 
-      <RouterLink
-        to="/add-inventory"
-        class="bg-gradient-to-r from-green-700 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-xl hover:scale-105 transition"
-      >
-        + Tambah Inventaris
-      </RouterLink>
+<div class="flex gap-3">
+        <button
+          @click="downloadExcel"
+          class="bg-white border border-emerald-600 text-emerald-700 px-6 py-3 rounded-xl font-semibold shadow-sm hover:shadow-lg hover:bg-emerald-50 hover:scale-105 transition inline-flex items-center gap-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Unduh Excel
+        </button>
+
+        <RouterLink
+          to="/add-inventory"
+          class="bg-gradient-to-r from-green-700 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-xl hover:scale-105 transition"
+        >
+          + Tambah Inventaris
+        </RouterLink>
+      </div>
     </div>
 
     <!-- Search -->
