@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",
@@ -23,9 +24,11 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.47.0",
     "@vitejs/plugin-vue": "^6.0.7",
     "vite": "^8.0.16",
-    "vite-plugin-vue-devtools": "^8.1.2"
+    "vite-plugin-vue-devtools": "^8.1.2",
+    "wrangler": "^4.114.0"
   },
   "engines": {
     "node": "^22.18.0 || >=24.12.0"
