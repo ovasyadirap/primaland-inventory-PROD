@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 import { supabase } from "../lib/supabase";
 import * as XLSX from "xlsx";
 
 const inventory = ref([]);
+const router = useRouter();
 const search = ref("");
 const selectedDivisi = ref("");
 
@@ -107,6 +108,13 @@ const downloadExcel = () => {
   XLSX.writeFile(workbook, `Daftar-Inventaris-Primaland2-${tanggal}.xlsx`);
 };
 
+// =======================
+// Logout
+// =======================
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
 // =======================
 // Saat Halaman Dibuka
@@ -121,15 +129,25 @@ onMounted(() => {
 
     <!-- Header -->
     <div
-      class="bg-gradient-to-r from-green-700 via-emerald-600 to-teal-500 text-white rounded-3xl p-8 shadow-2xl border border-white/20">
+      class="bg-gradient-to-r from-green-700 via-emerald-600 to-teal-500 text-white rounded-3xl p-8 shadow-2xl border border-white/20 flex items-start justify-between gap-4">
 
-      <h1 class="text-4xl font-extrabold tracking-wide">
-        PRIMALAND 2
-      </h1>
+      <div>
+        <h1 class="text-4xl font-extrabold tracking-wide">
+          PRIMALAND 2
+        </h1>
 
-      <p class="text-green-100 mt-2 text-lg">
-        Inventory Management System
-      </p>
+        <p class="text-green-100 mt-2 text-lg">
+          Inventory Management System
+        </p>
+      </div>
+
+      <button
+        @click="handleLogout"
+        class="flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition shrink-0"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Keluar
+      </button>
     </div>
 
     <!-- Judul -->
