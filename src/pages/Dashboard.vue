@@ -9,6 +9,13 @@ const router = useRouter();
 const search = ref("");
 const selectedDivisi = ref("");
 
+const divisiDropdownOpen = ref(false);
+
+const pilihDivisi = (divisi) => {
+  selectedDivisi.value = divisi;
+  divisiDropdownOpen.value = false;
+};
+
 // =======================
 // Ambil Data Inventory
 // =======================
@@ -169,51 +176,94 @@ onMounted(() => {
 
         <RouterLink
           to="/add-inventory"
-          class="bg-gradient-to-r from-green-700 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-xl hover:scale-105 transition"
+          class="bg-gradient-to-r from-green-700 via-emerald-600 to-teal-500 text-white px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-xl hover:scale-105 transition"
         >
           + Tambah Inventaris
         </RouterLink>
       </div>
     </div>
 
-    <!-- Search -->
+<!-- Search -->
     <div class="mt-6 flex flex-col md:flex-row gap-4">
 
-      <input
-        v-model="search"
-        type="text"
-        placeholder="Cari nama atau kode barang..."
-        class="flex-1 px-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
-      />
+      <div class="relative flex-1">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Cari nama atau kode barang..."
+          class="w-full pl-12 pr-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+        />
+      </div>
 
-      <select
-        v-model="selectedDivisi"
-        class="px-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none transition"
-      >
-        <option value="">Semua Divisi</option>
+<div class="relative md:w-56">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+        </svg>
 
-        <option
-          v-for="divisi in daftarDivisi"
-          :key="divisi"
-          :value="divisi"
+        <button
+          type="button"
+          @click="divisiDropdownOpen = !divisiDropdownOpen"
+          class="w-full flex items-center justify-between pl-12 pr-4 py-3 rounded-2xl border bg-white shadow-sm outline-none transition"
+          :class="divisiDropdownOpen ? 'border-emerald-500 ring-2 ring-emerald-500' : 'border-slate-200'"
         >
-          {{ divisi }}
-        </option>
+          <span class="text-slate-700 font-medium">{{ selectedDivisi || "Semua Divisi" }}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400 transition-transform" :class="divisiDropdownOpen ? 'rotate-180' : ''">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
 
-      </select>
+        <div v-if="divisiDropdownOpen" @click="divisiDropdownOpen = false" class="fixed inset-0 z-20"></div>
+
+        <div
+          v-if="divisiDropdownOpen"
+          class="absolute z-30 mt-2 w-full bg-white rounded-2xl shadow-xl border border-slate-200 py-2 max-h-64 overflow-auto"
+        >
+          <button
+            type="button"
+            @click="pilihDivisi('')"
+            class="w-full text-left px-4 py-2.5 text-sm font-medium transition flex items-center justify-between"
+            :class="selectedDivisi === '' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-700 hover:bg-slate-50'"
+          >
+            Semua Divisi
+            <svg v-if="selectedDivisi === ''" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+
+          <button
+            v-for="divisi in daftarDivisi"
+            :key="divisi"
+            type="button"
+            @click="pilihDivisi(divisi)"
+            class="w-full text-left px-4 py-2.5 text-sm font-medium transition flex items-center justify-between"
+            :class="selectedDivisi === divisi ? 'bg-emerald-50 text-emerald-700' : 'text-slate-700 hover:bg-slate-50'"
+          >
+            {{ divisi }}
+            <svg v-if="selectedDivisi === divisi" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
+      </div>
 
     </div>
 
     <!-- Total -->
-    <div class="mt-6 bg-white rounded-3xl shadow-lg border border-slate-200 p-6">
+    <div class="mt-6 bg-white rounded-3xl shadow-lg border border-slate-200 border-t-[5px] border-t-emerald-500 p-6 flex items-center gap-5">
 
-      <p class="text-gray-500">
-        Total Barang
-      </p>
+      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-700 via-emerald-600 to-teal-500 flex items-center justify-center shrink-0 shadow-md">
+        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+          <path d="m3.3 7 8.7 5 8.7-5"/>
+          <path d="M12 22V12"/>
+        </svg>
+      </div>
 
-      <h2 class="text-4xl font-bold text-green-700 mt-2">
-        {{ filteredInventory.length }}
-      </h2>
+      <div>
+        <p class="text-sm text-slate-500 font-medium">Total Barang</p>
+        <h2 class="text-4xl font-bold text-slate-800 mt-0.5">
+          {{ filteredInventory.length }}
+        </h2>
+      </div>
 
     </div>
 
