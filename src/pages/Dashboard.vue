@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import { supabase } from "../lib/supabase";
 import * as XLSX from "xlsx";
@@ -7,6 +7,8 @@ import * as XLSX from "xlsx";
 const inventory = ref([]);
 const router = useRouter();
 const search = ref("");
+const itemsPerPage = ref(10);
+const currentPage = ref(1);
 const selectedDivisi = ref("");
 
 const divisiDropdownOpen = ref(false);
@@ -56,6 +58,20 @@ const filteredInventory = computed(() => {
 
     return cocokSearch && cocokDivisi;
   });
+});
+
+// =======================
+// Pagination
+// =======================
+const totalPages = computed(() =>
+  Math.ceil(filteredInventory.value.length / itemsPerPage.value)
+);
+
+const paginatedInventory = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + Number(itemsPerPage.value);
+
+  return filteredInventory.value.slice(start, end);
 });
 
 // =======================
@@ -128,6 +144,10 @@ const downloadExcel = () => {
 // =======================
 onMounted(() => {
   loadInventory();
+});
+
+watch([search, selectedDivisi, itemsPerPage], () => {
+  currentPage.value = 1;
 });
 </script>
 
@@ -244,7 +264,16 @@ onMounted(() => {
           </button>
         </div>
       </div>
-
+<select
+  v-model="itemsPerPage"
+  class="px-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm"
+>
+  <option :value="5">5 Data</option>
+  <option :value="10">10 Data</option>
+  <option :value="25">25 Data</option>
+  <option :value="50">50 Data</option>
+  <option :value="100">100 Data</option>
+</select>
     </div>
 
     <!-- Total -->
@@ -271,7 +300,7 @@ onMounted(() => {
     <div class="grid lg:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
 
 <div
-  v-for="barang in filteredInventory"
+  v-for="barang in paginatedInventory"
   :key="barang.id"
   class="bg-white rounded-3xl border border-slate-200 border-t-[5px] border-t-emerald-500 shadow-md hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 ease-in-out p-5"
 >
@@ -390,7 +419,7 @@ onMounted(() => {
       class="text-center bg-white text-red-500 py-2.5 rounded-lg text-sm font-semibold border border-red-100 hover:bg-red-50 hover:text-red-600 transition-colors"
     >
       Hapus
-    </button>
+    </button> 
 
   </div>
 
