@@ -44,6 +44,17 @@ const daftarDivisi = computed(() => {
 });
 
 // =======================
+// Total Nilai Aset
+// =======================
+const totalNilaiAset = computed(() => {
+  return filteredInventory.value.reduce((sum, item) => sum + (Number(item.harga) || 0), 0);
+});
+
+const formatRupiah = (angka) => {
+  return "Rp " + Number(angka).toLocaleString("id-ID");
+};
+
+// =======================
 // Filter Search & Divisi
 // =======================
 const filteredInventory = computed(() => {
@@ -276,22 +287,38 @@ watch([search, selectedDivisi, itemsPerPage], () => {
 </select>
     </div>
 
-    <!-- Total -->
-    <div class="mt-6 bg-white rounded-3xl shadow-lg border border-slate-200 border-t-[5px] border-t-emerald-500 p-6 flex items-center gap-5">
+<!-- Total -->
+    <div class="mt-6 grid sm:grid-cols-2 gap-4">
 
-      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-700 via-emerald-600 to-teal-500 flex items-center justify-center shrink-0 shadow-md">
-        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-          <path d="m3.3 7 8.7 5 8.7-5"/>
-          <path d="M12 22V12"/>
-        </svg>
+      <div class="bg-white rounded-3xl shadow-lg border border-slate-200 border-t-[5px] border-t-emerald-500 p-6 flex items-center gap-5">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-700 via-emerald-600 to-teal-500 flex items-center justify-center shrink-0 shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+            <path d="m3.3 7 8.7 5 8.7-5"/>
+            <path d="M12 22V12"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm text-slate-500 font-medium">Total Barang</p>
+          <h2 class="text-4xl font-bold text-slate-800 mt-0.5">
+            {{ filteredInventory.length }}
+          </h2>
+        </div>
       </div>
 
-      <div>
-        <p class="text-sm text-slate-500 font-medium">Total Barang</p>
-        <h2 class="text-4xl font-bold text-slate-800 mt-0.5">
-          {{ filteredInventory.length }}
-        </h2>
+      <div class="bg-white rounded-3xl shadow-lg border border-slate-200 border-t-[5px] border-t-emerald-500 p-6 flex items-center gap-5">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-700 via-emerald-600 to-teal-500 flex items-center justify-center shrink-0 shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="2" x2="12" y2="22"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm text-slate-500 font-medium">Total Nilai Aset</p>
+          <h2 class="text-2xl sm:text-3xl font-bold text-slate-800 mt-0.5 truncate">
+            {{ formatRupiah(totalNilaiAset) }}
+          </h2>
+        </div>
       </div>
 
     </div>
