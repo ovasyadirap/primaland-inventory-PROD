@@ -34,7 +34,6 @@ const uploadFoto = async (event) => {
 const form = ref({
   kode: "",
   nama: "",
-  kategori: "",
   divisi: "",
   pic: "",
   lokasi: "",
@@ -64,7 +63,6 @@ const simpanData = async () => {
         {
           kode: form.value.kode,
           nama: form.value.nama,
-          kategori: form.value.kategori,
           divisi: form.value.divisi,
           pic: form.value.pic,
           lokasi: form.value.lokasi,
@@ -139,18 +137,6 @@ const simpanData = async () => {
             v-model="form.nama"
             type="text"
             placeholder="Laptop ASUS"
-            class="w-full mt-2 border rounded-xl p-3"
-          />
-        </div>
-
-        <!-- Kategori -->
-        <div>
-          <label class="font-semibold">Kategori</label>
-
-          <input
-            v-model="form.kategori"
-            type="text"
-            placeholder="Laptop / Printer / Meja"
             class="w-full mt-2 border rounded-xl p-3"
           />
         </div>

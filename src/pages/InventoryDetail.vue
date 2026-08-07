@@ -145,12 +145,19 @@ onMounted(() => {
       <!-- Content -->
       <div class="p-6">
 
-        <!-- Foto -->
-        <img
-          :src="barang.foto || 'https://placehold.co/600x400?text=No+Image'"
-          :alt="barang.nama"
-          class="rounded-2xl h-64 w-full object-cover border"
-        />
+      <!-- Foto -->
+        <div class="relative rounded-2xl h-80 w-full overflow-hidden border border-slate-200">
+          <img
+            :src="barang.foto || 'https://placehold.co/600x400?text=No+Image'"
+            class="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-50"
+            aria-hidden="true"
+          />
+          <img
+            :src="barang.foto || 'https://placehold.co/600x400?text=No+Image'"
+            :alt="barang.nama"
+            class="relative w-full h-full object-contain"
+          />
+        </div>
 
         <!-- Nama -->
         <h2 class="text-2xl font-bold text-center mt-6">
