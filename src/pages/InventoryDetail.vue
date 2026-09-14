@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { supabase } from "../lib/supabase";
+import { hitungNilaiSekarang } from "../lib/penyusutan";
 
 import {
   Calendar,
@@ -67,6 +68,11 @@ const formatTanggal = (tanggal) => {
     year: "numeric",
   });
 };
+
+const nilaiSekarang = computed(() => {
+  if (!barang.value) return 0;
+  return hitungNilaiSekarang(barang.value.harga, barang.value.tanggal, barang.value.masa_manfaat);
+});
 
 // ======================
 // Badge Status
@@ -301,6 +307,18 @@ onMounted(() => {
 
             </div>
 
+          </div>
+
+          <div v-if="barang.masa_manfaat" class="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
+            <TrendingDown class="text-indigo-600"/>
+            <div>
+              <p class="text-sm text-gray-500">
+                Estimasi Nilai Sekarang
+              </p>
+              <p class="font-bold text-indigo-600">
+                {{ formatRupiah(nilaiSekarang) }}
+              </p>
+            </div>
           </div>
 
           <!-- Kelengkapan -->

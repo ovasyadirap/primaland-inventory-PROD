@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
+import { saranMasaManfaat } from "../lib/penyusutan";
 import { RouterLink, useRouter } from "vue-router";
 import { supabase } from "../lib/supabase";
 
@@ -40,9 +41,18 @@ const form = ref({
   tanggal: "",
   qty: 1,
   harga: "",
+  masaManfaat: 4,
   status: "Aktif",
   kelengkapan: "",
   foto: "",
+});
+
+const masaManfaatDisentuh = ref(false);
+
+watch(() => form.value.harga, (hargaBaru) => {
+  if (!masaManfaatDisentuh.value) {
+    form.value.masaManfaat = saranMasaManfaat(hargaBaru);
+  }
 });
 
 const simpanData = async () => {
@@ -69,6 +79,7 @@ const simpanData = async () => {
           tanggal: form.value.tanggal,
           qty: Number(form.value.qty),
           harga: Number(form.value.harga),
+          masa_manfaat: Number(form.value.masaManfaat) || null,
           status: form.value.status,
           kelengkapan: form.value.kelengkapan,
           foto: form.value.foto,
@@ -210,6 +221,23 @@ const simpanData = async () => {
             placeholder="8500000"
             class="w-full mt-2 border rounded-xl p-3"
           />
+        </div>
+
+                <!-- Masa Manfaat -->
+        <div>
+          <label class="font-semibold">Masa Manfaat (Tahun)</label>
+
+          <input
+            v-model="form.masaManfaat"
+            @input="masaManfaatDisentuh = true"
+            type="number"
+            min="1"
+            class="w-full mt-2 border rounded-xl p-3"
+          />
+
+          <p class="text-xs text-gray-500 mt-1">
+            Otomatis tersaran dari Harga (≥50jt → 8 thn, di bawah itu → 4 thn), bisa diubah manual.
+          </p>
         </div>
 
         <!-- Status -->

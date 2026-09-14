@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import { supabase } from "../lib/supabase";
 import * as XLSX from "xlsx";
+import { hitungNilaiSekarang } from "../lib/penyusutan";
 
 const inventory = ref([]);
 const router = useRouter();
@@ -65,6 +66,13 @@ const totalNilaiAset = computed(() => {
 const formatRupiah = (angka) => {
   return "Rp " + Number(angka).toLocaleString("id-ID");
 };
+
+const totalNilaiSekarang = computed(() => {
+  return filteredInventory.value.reduce(
+    (sum, item) => sum + hitungNilaiSekarang(item.harga, item.tanggal, item.masa_manfaat),
+    0
+  );
+});
 
 // =======================
 // Filter Search, Divisi & Lokasi
@@ -319,7 +327,7 @@ watch([search, selectedDivisi, selectedLokasi, itemsPerPage], () => {
     </div>
 
 <!-- Total -->
-    <div class="mt-6 grid sm:grid-cols-2 gap-4">
+    <div class="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
       <div class="bg-white rounded-3xl shadow-lg border border-slate-200 border-t-[5px] border-t-emerald-500 p-6 flex items-center gap-5">
         <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-700 via-emerald-600 to-teal-500 flex items-center justify-center shrink-0 shadow-md">
@@ -345,9 +353,24 @@ watch([search, selectedDivisi, selectedLokasi, itemsPerPage], () => {
           </svg>
         </div>
         <div class="min-w-0">
-          <p class="text-sm text-slate-500 font-medium">Total Nilai Aset</p>
+          <p class="text-sm text-slate-500 font-medium">Nilai Perolehan</p>
           <h2 class="text-2xl sm:text-3xl font-bold text-slate-800 mt-0.5 truncate">
             {{ formatRupiah(totalNilaiAset) }}
+          </h2>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-lg border border-slate-200 border-t-[5px] border-t-indigo-500 p-6 flex items-center gap-5">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-500 flex items-center justify-center shrink-0 shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/>
+            <path d="m19 9-5 5-4-4-3 3"/>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm text-slate-500 font-medium">Estimasi Nilai Sekarang</p>
+          <h2 class="text-2xl sm:text-3xl font-bold text-slate-800 mt-0.5 truncate">
+            {{ formatRupiah(totalNilaiSekarang) }}
           </h2>
         </div>
       </div>

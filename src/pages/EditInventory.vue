@@ -20,6 +20,7 @@ const form = ref({
   tanggal: "",
   qty: 1,
   harga: "",
+  masaManfaat: "",
   status: "Aktif",
   kelengkapan: "",
   foto: "",
@@ -51,6 +52,7 @@ const loadData = async () => {
   tanggal: data.tanggal,
   qty: data.qty,
   harga: data.harga,
+  masaManfaat: data.masa_manfaat,
   status: data.status,
   kelengkapan: data.kelengkapan,
   foto: data.foto,
@@ -118,6 +120,7 @@ const updateData = async () => {
       tanggal: form.value.tanggal,
       qty: Number(form.value.qty),
       harga: Number(form.value.harga),
+      masa_manfaat: Number(form.value.masaManfaat) || null,
       status: form.value.status,
       kelengkapan: form.value.kelengkapan,
       foto: fotoURL,
@@ -248,6 +251,21 @@ onMounted(() => {
             type="number"
             class="w-full mt-2 border rounded-xl p-3"
           />
+        </div>
+
+                <div>
+          <label class="font-semibold">Masa Manfaat (Tahun)</label>
+
+          <input
+            v-model="form.masaManfaat"
+            type="number"
+            min="1"
+            class="w-full mt-2 border rounded-xl p-3"
+          />
+
+          <p class="text-xs text-gray-500 mt-1">
+            Kosongkan jika belum ingin dihitung penyusutannya.
+          </p>
         </div>
 
         <div>
