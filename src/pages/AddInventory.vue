@@ -7,30 +7,7 @@ import { supabase } from "../lib/supabase";
 const router = useRouter();
 
 const loading = ref(false);
-
-const uploadFoto = async (event) => {
-  const file = event.target.files[0];
-
-  if (!file) return;
-
-  const fileName = `${Date.now()}-${file.name}`;
-
-  const { error } = await supabase.storage
-    .from("inventory")
-    .upload(fileName, file);
-
-  if (error) {
-    alert("Upload foto gagal.");
-    console.error(error);
-    return;
-  }
-
-  const { data } = supabase.storage
-    .from("inventory")
-    .getPublicUrl(fileName);
-
-  form.value.foto = data.publicUrl;
-};
+const selectedFile = ref(null);
 
 const form = ref({
   kode: "",
@@ -49,26 +26,131 @@ const form = ref({
 
 const masaManfaatDisentuh = ref(false);
 
-watch(() => form.value.harga, (hargaBaru) => {
-  if (!masaManfaatDisentuh.value) {
-    form.value.masaManfaat = saranMasaManfaat(hargaBaru);
+// ======================
+// Saran Masa Manfaat
+// ======================
+watch(
+  () => form.value.harga,
+  (hargaBaru) => {
+    if (!masaManfaatDisentuh.value) {
+      form.value.masaManfaat = saranMasaManfaat(hargaBaru);
+    }
   }
-});
+);
 
+// ======================
+// Pilih Foto
+// Foto belum langsung diupload
+// ======================
+const pilihFoto = (event) => {
+  const file = event.target.files[0];
+
+  if (!file) {
+    selectedFile.value = null;
+    return;
+  }
+
+  selectedFile.value = file;
+};
+
+// ======================
+// Upload Foto
+// ======================
+const uploadFoto = async () => {
+  if (!selectedFile.value) return "";
+
+  const file = selectedFile.value;
+
+  const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("inventory")
+    .upload(fileName, file);
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = supabase.storage
+    .from("inventory")
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
+};
+
+// ======================
+// Simpan Data
+// ======================
 const simpanData = async () => {
+  // Validasi dasar
   if (
     !form.value.kode ||
     !form.value.nama ||
     !form.value.divisi
   ) {
-    alert("Mohon lengkapi data terlebih dahulu.");
+    alert("Mohon lengkapi Kode Barang, Nama Barang, dan Divisi.");
     return;
   }
 
   loading.value = true;
 
-  const { error } = await supabase
-    .from("inventory")
+  try {
+    // ======================
+    // Normalisasi kode
+    // ======================
+    const kodeBersih = form.value.kode
+      .trim()
+      .toUpperCase();
+
+    // ======================
+    // Cek kode duplikat
+    // ======================
+    const {
+      data: kodeSudahAda,
+      error: checkError,
+    } = await supabase
+      .from("inventory")
+      .select("id, kode, nama")
+      .ilike("kode", kodeBersih)
+      .limit(1);
+
+    if (checkError) {
+      console.error("Gagal cek kode:", checkError);
+      alert("Gagal memeriksa kode barang.");
+      return;
+    }
+
+    if (kodeSudahAda && kodeSudahAda.length > 0) {
+      alert(
+        `Kode barang "${kodeBersih}" sudah digunakan oleh "${kodeSudahAda[0].nama}".\n\nSilakan gunakan kode lain.`
+      );
+      return;
+    }
+
+    // Simpan kode yang sudah dirapikan
+    form.value.kode = kodeBersih;
+
+    // ======================
+    // Upload foto
+    // dilakukan setelah kode aman
+    // ======================
+    let fotoURL = "";
+
+    if (selectedFile.value) {
+      try {
+        fotoURL = await uploadFoto();
+      } catch (uploadError) {
+        console.error("Upload foto gagal:", uploadError);
+        alert("Upload foto gagal.");
+        return;
+      }
+    }
+
+    // ======================
+    // Insert Inventory
+    // ======================
+    const { error } = await supabase
+      .from("inventory")
       .insert([
         {
           kode: form.value.kode,
@@ -76,27 +158,41 @@ const simpanData = async () => {
           divisi: form.value.divisi,
           pic: form.value.pic,
           lokasi: form.value.lokasi,
-          tanggal: form.value.tanggal,
-          qty: Number(form.value.qty),
-          harga: Number(form.value.harga),
-          masa_manfaat: Number(form.value.masaManfaat) || null,
+          tanggal: form.value.tanggal || null,
+          qty: Number(form.value.qty) || 1,
+          harga: Number(form.value.harga) || 0,
+          masa_manfaat:
+            Number(form.value.masaManfaat) || null,
           status: form.value.status,
           kelengkapan: form.value.kelengkapan,
-          foto: form.value.foto,
+          foto: fotoURL || null,
         },
       ]);
 
-  loading.value = false;
+    if (error) {
+      console.error("Insert error:", error);
 
-  if (error) {
-    console.error(error);
-    alert("Gagal menyimpan data.");
-    return;
+      // Jika nanti UNIQUE constraint sudah dipasang
+      if (error.code === "23505") {
+        alert(
+          `Kode barang "${form.value.kode}" sudah digunakan. Silakan gunakan kode lain.`
+        );
+        return;
+      }
+
+      alert("Gagal menyimpan data inventaris.");
+      return;
+    }
+
+    alert("Inventaris berhasil ditambahkan!");
+
+    router.push("/");
+  } catch (error) {
+    console.error("Error:", error);
+    alert("Terjadi kesalahan saat menyimpan data.");
+  } finally {
+    loading.value = false;
   }
-
-  alert("Inventaris berhasil ditambahkan!");
-
-  router.push("/");
 };
 </script>
 
@@ -135,9 +231,13 @@ const simpanData = async () => {
           <input
             v-model="form.kode"
             type="text"
-            placeholder="INV-0001"
+            placeholder="PL2-PROYEK-001-2026"
             class="w-full mt-2 border rounded-xl p-3"
           />
+
+          <p class="text-xs text-gray-500 mt-1">
+            Kode barang tidak boleh sama dengan inventaris yang sudah ada.
+          </p>
         </div>
 
         <!-- Nama -->
@@ -163,7 +263,7 @@ const simpanData = async () => {
             class="w-full mt-2 border rounded-xl p-3"
           />
         </div>
-        
+
         <!-- PIC -->
         <div>
           <label class="font-semibold">PIC</label>
@@ -218,14 +318,17 @@ const simpanData = async () => {
           <input
             v-model="form.harga"
             type="number"
+            min="0"
             placeholder="8500000"
             class="w-full mt-2 border rounded-xl p-3"
           />
         </div>
 
-                <!-- Masa Manfaat -->
+        <!-- Masa Manfaat -->
         <div>
-          <label class="font-semibold">Masa Manfaat (Tahun)</label>
+          <label class="font-semibold">
+            Masa Manfaat (Tahun)
+          </label>
 
           <input
             v-model="form.masaManfaat"
@@ -236,7 +339,9 @@ const simpanData = async () => {
           />
 
           <p class="text-xs text-gray-500 mt-1">
-            Otomatis tersaran dari Harga (≥50jt → 8 thn, di bawah itu → 4 thn), bisa diubah manual.
+            Otomatis tersaran dari Harga
+            (≥50jt → 8 thn, di bawah itu → 4 thn),
+            bisa diubah manual.
           </p>
         </div>
 
@@ -262,15 +367,15 @@ const simpanData = async () => {
           <input
             type="file"
             accept="image/*"
-            @change="uploadFoto"
+            @change="pilihFoto"
             class="w-full mt-2 border rounded-xl p-2"
           />
 
           <p
-            v-if="form.foto"
+            v-if="selectedFile"
             class="text-green-600 text-sm mt-2"
           >
-            ✓ Foto berhasil diupload
+            ✓ Foto siap diupload saat data disimpan
           </p>
         </div>
 
@@ -287,10 +392,10 @@ const simpanData = async () => {
           v-model="form.kelengkapan"
           rows="5"
           placeholder="Contoh:
-          - Charger
-          - Mouse
-          - Tas Laptop
-          - Surat Garansi"
+- Charger
+- Mouse
+- Tas Laptop
+- Surat Garansi"
           class="w-full mt-2 border rounded-xl p-3"
         ></textarea>
 
