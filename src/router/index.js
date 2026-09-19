@@ -7,6 +7,7 @@ import AddInventory from "../pages/AddInventory.vue";
 import EditInventory from "../pages/EditInventory.vue";
 import QRCode from "../pages/QRCode.vue";
 import Login from "../pages/Login.vue";
+import SoldInventory from "../pages/SoldInventory.vue";
 
 const routes = [
   {
@@ -14,6 +15,12 @@ const routes = [
     name: "dashboard",
     component: Dashboard,
     meta: { requiresAuth: true },
+  },
+
+  {
+    path: "/sold-inventory",
+    name: "sold-inventory",
+    component: SoldInventory,
   },
 
   {
@@ -49,6 +56,8 @@ const routes = [
     component: InventoryDetail,
     // sengaja TANPA requiresAuth — ini halaman hasil scan QR, harus tetap bebas diakses siapa saja
   },
+
+
 ];
 
 const router = createRouter({

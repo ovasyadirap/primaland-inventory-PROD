@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { saranMasaManfaat } from "../lib/penyusutan";
 import { RouterLink, useRouter } from "vue-router";
 import { supabase } from "../lib/supabase";
@@ -18,6 +18,11 @@ const form = ref({
   tanggal: "",
   qty: 1,
   harga: "",
+
+  // Nilai Residu
+  persentaseResidu: "",
+  customResidu: "",
+
   masaManfaat: 4,
   status: "Aktif",
   kelengkapan: "",
@@ -39,8 +44,44 @@ watch(
 );
 
 // ======================
+// Persentase Residu Aktif
+// ======================
+const persentaseResiduAktif = computed(() => {
+  if (form.value.persentaseResidu === "custom") {
+    return Number(form.value.customResidu) || 0;
+  }
+
+  return Number(form.value.persentaseResidu) || 0;
+});
+
+// ======================
+// Hitung Nilai Residu
+// ======================
+const nilaiResidu = computed(() => {
+  const harga = Number(form.value.harga) || 0;
+
+  if (!form.value.persentaseResidu) {
+    return 0;
+  }
+
+  return Math.round(
+    harga * (persentaseResiduAktif.value / 100)
+  );
+});
+
+// ======================
+// Format Rupiah
+// ======================
+const formatRupiah = (angka) => {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(Number(angka) || 0);
+};
+
+// ======================
 // Pilih Foto
-// Foto belum langsung diupload
 // ======================
 const pilihFoto = (event) => {
   const file = event.target.files[0];
@@ -82,28 +123,52 @@ const uploadFoto = async () => {
 // Simpan Data
 // ======================
 const simpanData = async () => {
-  // Validasi dasar
+  // Validasi data wajib
   if (
     !form.value.kode ||
     !form.value.nama ||
     !form.value.divisi
   ) {
-    alert("Mohon lengkapi Kode Barang, Nama Barang, dan Divisi.");
+    alert(
+      "Mohon lengkapi Kode Barang, Nama Barang, dan Divisi."
+    );
     return;
+  }
+
+  // Persentase residu wajib dipilih
+  if (!form.value.persentaseResidu) {
+    alert("Silakan pilih persentase nilai residu.");
+    return;
+  }
+
+  // Validasi custom
+  if (form.value.persentaseResidu === "custom") {
+    const custom = Number(form.value.customResidu);
+
+    if (
+      form.value.customResidu === "" ||
+      custom < 0 ||
+      custom > 100
+    ) {
+      alert(
+        "Persentase residu custom harus antara 0% sampai 100%."
+      );
+      return;
+    }
   }
 
   loading.value = true;
 
   try {
     // ======================
-    // Normalisasi kode
+    // Normalisasi Kode
     // ======================
     const kodeBersih = form.value.kode
       .trim()
       .toUpperCase();
 
     // ======================
-    // Cek kode duplikat
+    // Cek Kode Duplikat
     // ======================
     const {
       data: kodeSudahAda,
@@ -127,12 +192,10 @@ const simpanData = async () => {
       return;
     }
 
-    // Simpan kode yang sudah dirapikan
     form.value.kode = kodeBersih;
 
     // ======================
-    // Upload foto
-    // dilakukan setelah kode aman
+    // Upload Foto
     // ======================
     let fotoURL = "";
 
@@ -140,7 +203,11 @@ const simpanData = async () => {
       try {
         fotoURL = await uploadFoto();
       } catch (uploadError) {
-        console.error("Upload foto gagal:", uploadError);
+        console.error(
+          "Upload foto gagal:",
+          uploadError
+        );
+
         alert("Upload foto gagal.");
         return;
       }
@@ -159,20 +226,36 @@ const simpanData = async () => {
           pic: form.value.pic,
           lokasi: form.value.lokasi,
           tanggal: form.value.tanggal || null,
+
           qty: Number(form.value.qty) || 1,
+
           harga: Number(form.value.harga) || 0,
+
+          persentase_residu:
+            persentaseResiduAktif.value,
+
+          nilai_residu:
+            nilaiResidu.value,
+
           masa_manfaat:
             Number(form.value.masaManfaat) || null,
+
           status: form.value.status,
-          kelengkapan: form.value.kelengkapan,
+
+          kelengkapan:
+            form.value.kelengkapan,
+
           foto: fotoURL || null,
         },
       ]);
 
     if (error) {
-      console.error("Insert error:", error);
+      console.error(
+        "Insert error:",
+        error
+      );
 
-      // Jika nanti UNIQUE constraint sudah dipasang
+      // Unique kode
       if (error.code === "23505") {
         alert(
           `Kode barang "${form.value.kode}" sudah digunakan. Silakan gunakan kode lain.`
@@ -180,16 +263,27 @@ const simpanData = async () => {
         return;
       }
 
-      alert("Gagal menyimpan data inventaris.");
+      alert(
+        "Gagal menyimpan data inventaris."
+      );
+
       return;
     }
 
-    alert("Inventaris berhasil ditambahkan!");
+    alert(
+      "Inventaris berhasil ditambahkan!"
+    );
 
     router.push("/");
   } catch (error) {
-    console.error("Error:", error);
-    alert("Terjadi kesalahan saat menyimpan data.");
+    console.error(
+      "Error:",
+      error
+    );
+
+    alert(
+      "Terjadi kesalahan saat menyimpan data."
+    );
   } finally {
     loading.value = false;
   }
@@ -200,7 +294,9 @@ const simpanData = async () => {
   <div class="min-h-screen bg-slate-100 p-6">
 
     <!-- Header -->
-    <div class="bg-green-700 text-white rounded-2xl p-6 shadow-lg">
+    <div
+      class="bg-green-700 text-white rounded-2xl p-6 shadow-lg"
+    >
 
       <RouterLink
         to="/"
@@ -220,13 +316,17 @@ const simpanData = async () => {
     </div>
 
     <!-- Form -->
-    <div class="bg-white rounded-2xl shadow-lg p-6 mt-6">
+    <div
+      class="bg-white rounded-2xl shadow-lg p-6 mt-6"
+    >
 
       <div class="grid md:grid-cols-2 gap-5">
 
         <!-- Kode -->
         <div>
-          <label class="font-semibold">Kode Barang</label>
+          <label class="font-semibold">
+            Kode Barang
+          </label>
 
           <input
             v-model="form.kode"
@@ -242,7 +342,9 @@ const simpanData = async () => {
 
         <!-- Nama -->
         <div>
-          <label class="font-semibold">Nama Barang</label>
+          <label class="font-semibold">
+            Nama Barang
+          </label>
 
           <input
             v-model="form.nama"
@@ -254,7 +356,9 @@ const simpanData = async () => {
 
         <!-- Divisi -->
         <div>
-          <label class="font-semibold">Divisi</label>
+          <label class="font-semibold">
+            Divisi
+          </label>
 
           <input
             v-model="form.divisi"
@@ -266,7 +370,9 @@ const simpanData = async () => {
 
         <!-- PIC -->
         <div>
-          <label class="font-semibold">PIC</label>
+          <label class="font-semibold">
+            PIC
+          </label>
 
           <input
             v-model="form.pic"
@@ -278,7 +384,9 @@ const simpanData = async () => {
 
         <!-- Lokasi -->
         <div>
-          <label class="font-semibold">Lokasi</label>
+          <label class="font-semibold">
+            Lokasi
+          </label>
 
           <input
             v-model="form.lokasi"
@@ -290,7 +398,9 @@ const simpanData = async () => {
 
         <!-- Tanggal -->
         <div>
-          <label class="font-semibold">Tanggal Pengadaan</label>
+          <label class="font-semibold">
+            Tanggal Pengadaan
+          </label>
 
           <input
             v-model="form.tanggal"
@@ -301,7 +411,9 @@ const simpanData = async () => {
 
         <!-- Qty -->
         <div>
-          <label class="font-semibold">Qty</label>
+          <label class="font-semibold">
+            Qty
+          </label>
 
           <input
             v-model="form.qty"
@@ -313,7 +425,9 @@ const simpanData = async () => {
 
         <!-- Harga -->
         <div>
-          <label class="font-semibold">Harga</label>
+          <label class="font-semibold">
+            Harga
+          </label>
 
           <input
             v-model="form.harga"
@@ -322,6 +436,85 @@ const simpanData = async () => {
             placeholder="8500000"
             class="w-full mt-2 border rounded-xl p-3"
           />
+        </div>
+
+        <!-- Persentase Nilai Residu -->
+        <div>
+          <label class="font-semibold">
+            Persentase Nilai Residu
+          </label>
+
+          <select
+            v-model="form.persentaseResidu"
+            class="w-full mt-2 border rounded-xl p-3 bg-white"
+          >
+            <option value="" disabled>
+              Pilih Persentase
+            </option>
+
+            <option :value="5">
+              5%
+            </option>
+
+            <option :value="10">
+              10%
+            </option>
+
+            <option :value="20">
+              20%
+            </option>
+
+            <option value="custom">
+              Custom
+            </option>
+          </select>
+
+          <!-- Custom -->
+          <div
+            v-if="form.persentaseResidu === 'custom'"
+            class="mt-3"
+          >
+            <label
+              class="text-sm font-medium text-slate-600"
+            >
+              Custom Persentase (%)
+            </label>
+
+            <input
+              v-model="form.customResidu"
+              type="number"
+              min="0"
+              max="100"
+              placeholder="Contoh: 15"
+              class="w-full mt-2 border rounded-xl p-3"
+            />
+          </div>
+
+          <!-- Preview -->
+          <div
+            v-if="form.persentaseResidu"
+            class="mt-3 bg-emerald-50 border border-emerald-100 rounded-xl p-3"
+          >
+            <p
+              class="text-xs text-slate-500"
+            >
+              Estimasi Nilai Residu
+            </p>
+
+            <p
+              class="font-bold text-emerald-700 mt-1"
+            >
+              {{ formatRupiah(nilaiResidu) }}
+            </p>
+
+            <p
+              class="text-xs text-slate-500 mt-1"
+            >
+              {{ persentaseResiduAktif }}%
+              dari harga perolehan
+            </p>
+          </div>
+
         </div>
 
         <!-- Masa Manfaat -->
@@ -338,7 +531,9 @@ const simpanData = async () => {
             class="w-full mt-2 border rounded-xl p-3"
           />
 
-          <p class="text-xs text-gray-500 mt-1">
+          <p
+            class="text-xs text-gray-500 mt-1"
+          >
             Otomatis tersaran dari Harga
             (≥50jt → 8 thn, di bawah itu → 4 thn),
             bisa diubah manual.
@@ -347,7 +542,9 @@ const simpanData = async () => {
 
         <!-- Status -->
         <div>
-          <label class="font-semibold">Status</label>
+          <label class="font-semibold">
+            Status
+          </label>
 
           <select
             v-model="form.status"
@@ -362,7 +559,9 @@ const simpanData = async () => {
 
         <!-- Foto -->
         <div>
-          <label class="font-semibold">Foto Barang</label>
+          <label class="font-semibold">
+            Foto Barang
+          </label>
 
           <input
             type="file"
@@ -402,7 +601,9 @@ const simpanData = async () => {
       </div>
 
       <!-- Tombol -->
-      <div class="flex justify-end gap-3 mt-8">
+      <div
+        class="flex justify-end gap-3 mt-8"
+      >
 
         <RouterLink
           to="/"
@@ -416,7 +617,11 @@ const simpanData = async () => {
           :disabled="loading"
           class="bg-green-700 hover:bg-green-800 disabled:bg-gray-400 text-white px-6 py-3 rounded-xl transition"
         >
-          {{ loading ? "Menyimpan..." : "Simpan Inventaris" }}
+          {{
+            loading
+              ? "Menyimpan..."
+              : "Simpan Inventaris"
+          }}
         </button>
 
       </div>

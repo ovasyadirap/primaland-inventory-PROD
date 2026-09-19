@@ -13,6 +13,7 @@ import {
   QrCode,
   MapPin,
   User,
+  TrendingDown,
 } from "lucide-vue-next";
 
 const route = useRoute();
@@ -47,13 +48,13 @@ const loadData = async () => {
 // Format Rupiah
 // ======================
 const formatRupiah = (harga) => {
-  if (!harga) return "-";
+  if (harga === null || harga === undefined) return "-";
 
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     maximumFractionDigits: 0,
-  }).format(harga);
+  }).format(Number(harga) || 0);
 };
 
 // ======================
@@ -69,9 +70,18 @@ const formatTanggal = (tanggal) => {
   });
 };
 
+// ======================
+// Nilai Buku Saat Ini
+// ======================
 const nilaiSekarang = computed(() => {
   if (!barang.value) return 0;
-  return hitungNilaiSekarang(barang.value.harga, barang.value.tanggal, barang.value.masa_manfaat);
+
+  return hitungNilaiSekarang(
+    barang.value.harga,
+    barang.value.tanggal,
+    barang.value.masa_manfaat,
+    barang.value.nilai_residu
+  );
 });
 
 // ======================
@@ -89,7 +99,10 @@ const statusClass = (status) => {
       return "bg-red-100 text-red-700";
 
     case "Hilang":
-      return "bg-gray-200 text-gray-700";
+    return "bg-gray-200 text-gray-700";
+
+    case "Terjual":
+      return "bg-emerald-100 text-emerald-700";
 
     default:
       return "bg-blue-100 text-blue-700";
@@ -102,13 +115,58 @@ const statusClass = (status) => {
 const listKelengkapan = () => {
   if (!barang.value?.kelengkapan) return [];
 
-  if (Array.isArray(barang.value.kelengkapan))
+  if (Array.isArray(barang.value.kelengkapan)) {
     return barang.value.kelengkapan;
+  }
 
   return barang.value.kelengkapan
-    .split(",")
-    .map((item) => item.trim())
+    .split(/,|\n/)
+    .map((item) => item.replace(/^-\s*/, "").trim())
     .filter(Boolean);
+};
+
+// ======================
+// Unduh Foto Barang
+// ======================
+const downloadFoto = async () => {
+  if (!barang.value?.foto) {
+    alert("Foto barang belum tersedia.");
+    return;
+  }
+
+  try {
+    const response = await fetch(barang.value.foto);
+
+    if (!response.ok) {
+      throw new Error("Gagal mengambil foto.");
+    }
+
+    const blob = await response.blob();
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    const kodeBarang =
+      barang.value.kode
+        ?.replace(/[^a-zA-Z0-9-_]/g, "-") ||
+      "inventaris";
+
+    link.href = url;
+    link.download = `${kodeBarang}-foto.jpg`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error(error);
+
+    alert("Gagal mengunduh foto barang.");
+  }
 };
 
 onMounted(() => {
@@ -151,19 +209,31 @@ onMounted(() => {
       <!-- Content -->
       <div class="p-6">
 
-      <!-- Foto -->
-        <div class="relative rounded-2xl h-80 w-full overflow-hidden border border-slate-200">
+        <!-- Foto -->
+        <div
+          class="relative rounded-2xl h-80 w-full overflow-hidden border border-slate-200"
+        >
           <img
             :src="barang.foto || 'https://placehold.co/600x400?text=No+Image'"
             class="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-50"
             aria-hidden="true"
           />
+
           <img
             :src="barang.foto || 'https://placehold.co/600x400?text=No+Image'"
             :alt="barang.nama"
             class="relative w-full h-full object-contain"
           />
         </div>
+
+        <!-- Unduh Foto -->
+        <button
+          v-if="barang.foto"
+          @click="downloadFoto"
+          class="w-full mt-3 bg-white border border-emerald-600 text-emerald-700 py-2.5 rounded-xl font-semibold hover:bg-emerald-50 transition flex items-center justify-center gap-2"
+        >
+          ↓ Unduh Foto Barang
+        </button>
 
         <!-- Nama -->
         <h2 class="text-2xl font-bold text-center mt-6">
@@ -175,8 +245,14 @@ onMounted(() => {
           v-if="barang.lokasi"
           class="flex justify-center items-center gap-2 mt-2 text-gray-500"
         >
-          <MapPin :size="18" class="text-green-700" />
-          <span>{{ barang.lokasi }}</span>
+          <MapPin
+            :size="18"
+            class="text-green-700"
+          />
+
+          <span>
+            {{ barang.lokasi }}
+          </span>
         </div>
 
         <!-- Status -->
@@ -186,11 +262,9 @@ onMounted(() => {
             :class="statusClass(barang.status)"
             class="inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold"
           >
-
             <BadgeCheck :size="18" />
 
             {{ barang.status }}
-
           </span>
 
         </div>
@@ -198,12 +272,13 @@ onMounted(() => {
         <!-- Detail -->
         <div class="mt-8 space-y-4">
 
-          <div class="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
-
-            <Calendar class="text-green-700"/>
+          <!-- Tanggal Pengadaan -->
+          <div
+            class="bg-gray-50 rounded-xl p-4 flex items-center gap-3"
+          >
+            <Calendar class="text-green-700" />
 
             <div>
-
               <p class="text-sm text-gray-500">
                 Tanggal Pengadaan
               </p>
@@ -211,17 +286,16 @@ onMounted(() => {
               <p class="font-semibold">
                 {{ formatTanggal(barang.tanggal) }}
               </p>
-
             </div>
-
           </div>
 
-          <div class="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
-
-            <QrCode class="text-green-700"/>
+          <!-- Kode Barang -->
+          <div
+            class="bg-gray-50 rounded-xl p-4 flex items-center gap-3"
+          >
+            <QrCode class="text-green-700" />
 
             <div>
-
               <p class="text-sm text-gray-500">
                 Kode Barang
               </p>
@@ -229,17 +303,16 @@ onMounted(() => {
               <p class="font-semibold">
                 {{ barang.kode }}
               </p>
-
             </div>
-
           </div>
 
-          <div class="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
-
-            <Building2 class="text-green-700"/>
+          <!-- Divisi -->
+          <div
+            class="bg-gray-50 rounded-xl p-4 flex items-center gap-3"
+          >
+            <Building2 class="text-green-700" />
 
             <div>
-
               <p class="text-sm text-gray-500">
                 Divisi
               </p>
@@ -247,20 +320,17 @@ onMounted(() => {
               <p class="font-semibold">
                 {{ barang.divisi }}
               </p>
-
             </div>
-
           </div>
+
           <!-- PIC -->
           <div
             v-if="barang.pic"
             class="bg-gray-50 rounded-xl p-4 flex items-center gap-3"
           >
-
-            <User class="text-green-700"/>
+            <User class="text-green-700" />
 
             <div>
-
               <p class="text-sm text-gray-500">
                 PIC
               </p>
@@ -268,17 +338,16 @@ onMounted(() => {
               <p class="font-semibold">
                 {{ barang.pic }}
               </p>
-
             </div>
-
           </div>
 
-          <div class="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
-
-            <Package class="text-green-700"/>
+          <!-- Qty -->
+          <div
+            class="bg-gray-50 rounded-xl p-4 flex items-center gap-3"
+          >
+            <Package class="text-green-700" />
 
             <div>
-
               <p class="text-sm text-gray-500">
                 Qty
               </p>
@@ -286,38 +355,136 @@ onMounted(() => {
               <p class="font-semibold">
                 {{ barang.qty }}
               </p>
-
             </div>
-
           </div>
 
-          <div class="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
-
-            <Wallet class="text-green-700"/>
+          <!-- Harga Perolehan -->
+          <div
+            class="bg-gray-50 rounded-xl p-4 flex items-center gap-3"
+          >
+            <Wallet class="text-green-700" />
 
             <div>
-
               <p class="text-sm text-gray-500">
-                Harga
+                Harga Perolehan
               </p>
 
               <p class="font-bold text-green-700">
                 {{ formatRupiah(barang.harga) }}
               </p>
-
             </div>
-
           </div>
 
-          <div v-if="barang.masa_manfaat" class="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
-            <TrendingDown class="text-indigo-600"/>
+          <!-- Nilai Residu -->
+          <div
+            v-if="
+              barang.nilai_residu !== null &&
+              barang.nilai_residu !== undefined
+            "
+            class="bg-emerald-50 rounded-xl p-4 flex items-center gap-3"
+          >
+            <Wallet class="text-emerald-600" />
+
             <div>
               <p class="text-sm text-gray-500">
-                Estimasi Nilai Sekarang
+                Nilai Residu
               </p>
+
+              <p class="font-bold text-emerald-700">
+                {{ formatRupiah(barang.nilai_residu) }}
+              </p>
+
+              <p
+                v-if="
+                  barang.persentase_residu !== null &&
+                  barang.persentase_residu !== undefined
+                "
+                class="text-xs text-gray-500 mt-1"
+              >
+                {{ barang.persentase_residu }}% dari harga perolehan
+              </p>
+            </div>
+          </div>
+
+          <!-- Masa Manfaat -->
+          <div
+            v-if="barang.masa_manfaat"
+            class="bg-gray-50 rounded-xl p-4 flex items-center gap-3"
+          >
+            <Calendar class="text-green-700" />
+
+            <div>
+              <p class="text-sm text-gray-500">
+                Masa Manfaat
+              </p>
+
+              <p class="font-semibold">
+                {{ barang.masa_manfaat }} Tahun
+              </p>
+            </div>
+          </div>
+
+          <!-- Nilai Buku Saat Ini -->
+          <div
+            v-if="barang.masa_manfaat"
+            class="bg-indigo-50 rounded-xl p-4 flex items-center gap-3"
+          >
+            <TrendingDown class="text-indigo-600" />
+
+            <div>
+              <p class="text-sm text-gray-500">
+                Nilai Buku Saat Ini
+              </p>
+
               <p class="font-bold text-indigo-600">
                 {{ formatRupiah(nilaiSekarang) }}
               </p>
+            </div>
+          </div>
+
+                    <!-- Informasi Penjualan -->
+          <div
+            v-if="barang.status === 'Terjual'"
+            class="bg-emerald-50 border border-emerald-200 rounded-xl p-4"
+          >
+            <div class="flex items-center gap-3 mb-4">
+              <Wallet class="text-emerald-600" />
+
+              <div>
+                <p class="font-bold text-emerald-700">
+                  Informasi Penjualan
+                </p>
+
+                <p class="text-xs text-gray-500 mt-0.5">
+                  Riwayat penjualan inventaris
+                </p>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+
+              <!-- Tanggal Penjualan -->
+              <div>
+                <p class="text-sm text-gray-500">
+                  Tanggal Penjualan
+                </p>
+
+                <p class="font-semibold text-slate-700">
+                  {{ formatTanggal(barang.tanggal_penjualan) }}
+                </p>
+              </div>
+
+              <!-- Harga Jual -->
+              <div>
+                <p class="text-sm text-gray-500">
+                  Harga Jual
+                </p>
+
+                <p class="font-bold text-emerald-700">
+                  {{ formatRupiah(barang.harga_jual) }}
+                </p>
+              </div>
+
             </div>
           </div>
 
@@ -326,7 +493,7 @@ onMounted(() => {
 
             <div class="flex items-center gap-3 mb-3">
 
-              <Package class="text-green-700"/>
+              <Package class="text-green-700" />
 
               <p class="text-sm text-gray-500 font-medium">
                 Kelengkapan Barang
@@ -334,14 +501,15 @@ onMounted(() => {
 
             </div>
 
-            <ul class="space-y-2">
-
+            <ul
+              v-if="listKelengkapan().length"
+              class="space-y-2"
+            >
               <li
-                v-for="(item,index) in listKelengkapan()"
+                v-for="(item, index) in listKelengkapan()"
                 :key="index"
                 class="flex items-center gap-2"
               >
-
                 <span class="text-green-600 font-bold">
                   ✓
                 </span>
@@ -349,10 +517,15 @@ onMounted(() => {
                 <span>
                   {{ item }}
                 </span>
-
               </li>
-
             </ul>
+
+            <p
+              v-else
+              class="text-sm text-gray-400"
+            >
+              Tidak ada data kelengkapan.
+            </p>
 
           </div>
 
