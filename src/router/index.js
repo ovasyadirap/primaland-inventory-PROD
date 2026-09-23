@@ -82,7 +82,7 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth && !sudahLogin) {
     next("/login");
   } else if (to.name === "login" && sudahLogin) {
-    next("/"); // udah login, nggak perlu lihat halaman login lagi
+    next("/"); 
   } else {
     next();
   }

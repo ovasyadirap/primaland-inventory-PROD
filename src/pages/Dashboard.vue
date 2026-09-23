@@ -99,14 +99,21 @@ const daftarLokasi = computed(() => {
 // Filter Search, Divisi & Lokasi
 // =======================
 const filteredInventory = computed(() => {
+  const keyword = search.value
+    .toLowerCase()
+    .trim();
+
   return activeInventory.value.filter((item) => {
     const cocokSearch =
       item.nama
         ?.toLowerCase()
-        .includes(search.value.toLowerCase()) ||
+        .includes(keyword) ||
       item.kode
         ?.toLowerCase()
-        .includes(search.value.toLowerCase());
+        .includes(keyword) ||
+      item.pic
+        ?.toLowerCase()
+        .includes(keyword);
 
     const cocokDivisi =
       selectedDivisi.value === "" ||
@@ -504,7 +511,7 @@ watch(
         <input
           v-model="search"
           type="text"
-          placeholder="Cari nama atau kode barang..."
+          placeholder="Cari nama, kode barang, atau PIC..."
           class="w-full pl-12 pr-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
         />
 
