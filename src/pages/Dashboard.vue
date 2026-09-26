@@ -14,6 +14,7 @@ const currentPage = ref(1);
 
 const selectedDivisi = ref("");
 const selectedLokasi = ref("");
+const selectedStatus = ref("");
 
 const divisiDropdownOpen = ref(false);
 const lokasiDropdownOpen = ref(false);
@@ -49,7 +50,7 @@ const loadInventory = async () => {
     return;
   }
 
-  inventory.value = data;
+  inventory.value = data || [];
 };
 
 // =======================
@@ -72,8 +73,7 @@ const jumlahTerjual = computed(() => {
 });
 
 // =======================
-// Daftar Divisi & Lokasi
-// Hanya dari inventory aktif
+// Daftar Divisi
 // =======================
 const daftarDivisi = computed(() => {
   return [
@@ -85,6 +85,9 @@ const daftarDivisi = computed(() => {
   ];
 });
 
+// =======================
+// Daftar Lokasi
+// =======================
 const daftarLokasi = computed(() => {
   return [
     ...new Set(
@@ -96,7 +99,8 @@ const daftarLokasi = computed(() => {
 });
 
 // =======================
-// Filter Search, Divisi & Lokasi
+// Filter Search, Divisi,
+// Lokasi & Status
 // =======================
 const filteredInventory = computed(() => {
   const keyword = search.value
@@ -123,10 +127,15 @@ const filteredInventory = computed(() => {
       selectedLokasi.value === "" ||
       item.lokasi === selectedLokasi.value;
 
+    const cocokStatus =
+      selectedStatus.value === "" ||
+      item.status === selectedStatus.value;
+
     return (
       cocokSearch &&
       cocokDivisi &&
-      cocokLokasi
+      cocokLokasi &&
+      cocokStatus
     );
   });
 });
@@ -229,44 +238,48 @@ const downloadExcel = () => {
   }
 
   // =======================
-  // Data Detail Inventory
+  // Detail Inventory
   // =======================
-  const rows = filteredInventory.value.map((item) => ({
-    "Kode Barang": item.kode,
-    "Nama Barang": item.nama,
-    "Divisi": item.divisi,
-    "PIC": item.pic || "-",
-    "Lokasi": item.lokasi || "-",
+  const rows = filteredInventory.value.map(
+    (item) => ({
+      "Kode Barang": item.kode,
+      "Nama Barang": item.nama,
+      "Divisi": item.divisi,
+      "PIC": item.pic || "-",
+      "Lokasi": item.lokasi || "-",
 
-    "Tanggal Pengadaan": item.tanggal
-      ? new Date(item.tanggal).toLocaleDateString("id-ID")
-      : "-",
-
-    "Harga Perolehan":
-      Number(item.harga) || 0,
-
-    "Persentase Residu":
-      item.persentase_residu !== null &&
-      item.persentase_residu !== undefined
-        ? `${item.persentase_residu}%`
+      "Tanggal Pengadaan": item.tanggal
+        ? new Date(
+            item.tanggal
+          ).toLocaleDateString("id-ID")
         : "-",
 
-    "Nilai Residu":
-      Number(item.nilai_residu) || 0,
+      "Harga Perolehan":
+        Number(item.harga) || 0,
 
-    "Masa Manfaat (Tahun)":
-      item.masa_manfaat || "-",
+      "Persentase Residu":
+        item.persentase_residu !== null &&
+        item.persentase_residu !== undefined
+          ? `${item.persentase_residu}%`
+          : "-",
 
-    "Nilai Buku Saat Ini":
-      hitungNilaiSekarang(
-        item.harga,
-        item.tanggal,
-        item.masa_manfaat,
-        item.nilai_residu
-      ),
+      "Nilai Residu":
+        Number(item.nilai_residu) || 0,
 
-    "Status": item.status,
-  }));
+      "Masa Manfaat (Tahun)":
+        item.masa_manfaat || "-",
+
+      "Nilai Buku Saat Ini":
+        hitungNilaiSekarang(
+          item.harga,
+          item.tanggal,
+          item.masa_manfaat,
+          item.nilai_residu
+        ),
+
+      "Status": item.status,
+    })
+  );
 
   // =======================
   // Worksheet Detail
@@ -275,35 +288,39 @@ const downloadExcel = () => {
     XLSX.utils.json_to_sheet(rows);
 
   worksheet["!cols"] = [
-    { wch: 24 }, // Kode Barang
-    { wch: 30 }, // Nama Barang
+    { wch: 24 }, // Kode
+    { wch: 30 }, // Nama
     { wch: 18 }, // Divisi
     { wch: 20 }, // PIC
     { wch: 25 }, // Lokasi
-    { wch: 20 }, // Tanggal Pengadaan
-    { wch: 20 }, // Harga Perolehan
-    { wch: 20 }, // Persentase Residu
-    { wch: 20 }, // Nilai Residu
+    { wch: 20 }, // Tanggal
+    { wch: 20 }, // Harga
+    { wch: 20 }, // Persentase
+    { wch: 20 }, // Residu
     { wch: 22 }, // Masa Manfaat
-    { wch: 22 }, // Nilai Buku Saat Ini
+    { wch: 22 }, // Nilai Buku
     { wch: 15 }, // Status
   ];
 
   // Format angka nominal
-  for (let row = 2; row <= rows.length + 1; row++) {
+  for (
+    let row = 2;
+    row <= rows.length + 1;
+    row++
+  ) {
     // Harga Perolehan
     if (worksheet[`G${row}`]) {
-      worksheet[`G${row}`].z = '#,##0';
+      worksheet[`G${row}`].z = "#,##0";
     }
 
     // Nilai Residu
     if (worksheet[`I${row}`]) {
-      worksheet[`I${row}`].z = '#,##0';
+      worksheet[`I${row}`].z = "#,##0";
     }
 
     // Nilai Buku
     if (worksheet[`K${row}`]) {
-      worksheet[`K${row}`].z = '#,##0';
+      worksheet[`K${row}`].z = "#,##0";
     }
   }
 
@@ -316,7 +333,8 @@ const downloadExcel = () => {
   const totalNilaiPerolehan =
     filteredInventory.value.reduce(
       (total, item) =>
-        total + (Number(item.harga) || 0),
+        total +
+        (Number(item.harga) || 0),
       0
     );
 
@@ -342,7 +360,7 @@ const downloadExcel = () => {
     );
 
   // =======================
-  // Data Summary
+  // Summary Excel
   // =======================
   const summaryData = [
     [
@@ -365,6 +383,12 @@ const downloadExcel = () => {
       "Filter Lokasi",
       selectedLokasi.value ||
         "Semua Lokasi",
+    ],
+
+    [
+      "Filter Status",
+      selectedStatus.value ||
+        "Semua Status",
     ],
 
     [
@@ -395,9 +419,6 @@ const downloadExcel = () => {
     ],
   ];
 
-  // =======================
-  // Worksheet Summary
-  // =======================
   const summarySheet =
     XLSX.utils.aoa_to_sheet(summaryData);
 
@@ -406,33 +427,40 @@ const downloadExcel = () => {
     { wch: 30 },
   ];
 
-  // Format angka summary
-  if (summarySheet["B8"]) {
-    summarySheet["B8"].z = '#,##0';
-  }
+  // =======================
+  // Format Summary
+  // =======================
+  // B8 = Total Barang
+  // B9 = Nilai Perolehan
+  // B10 = Nilai Residu
+  // B11 = Nilai Buku
 
   if (summarySheet["B9"]) {
-    summarySheet["B9"].z = '#,##0';
+    summarySheet["B9"].z = "#,##0";
   }
 
   if (summarySheet["B10"]) {
-    summarySheet["B10"].z = '#,##0';
+    summarySheet["B10"].z = "#,##0";
+  }
+
+  if (summarySheet["B11"]) {
+    summarySheet["B11"].z = "#,##0";
   }
 
   // =======================
-  // Buat Workbook
+  // Workbook
   // =======================
   const workbook =
     XLSX.utils.book_new();
 
-  // Summary jadi sheet pertama
+  // Summary sheet pertama
   XLSX.utils.book_append_sheet(
     workbook,
     summarySheet,
     "Summary"
   );
 
-  // Detail jadi sheet kedua
+  // Detail sheet kedua
   XLSX.utils.book_append_sheet(
     workbook,
     worksheet,
@@ -468,12 +496,15 @@ onMounted(() => {
   loadInventory();
 });
 
-// Reset pagination jika filter berubah
+// =======================
+// Reset Pagination
+// =======================
 watch(
   [
     search,
     selectedDivisi,
     selectedLokasi,
+    selectedStatus,
     itemsPerPage,
   ],
   () => {
@@ -487,7 +518,9 @@ watch(
     class="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-emerald-50 p-6"
   >
 
+    <!-- ===================== -->
     <!-- Header -->
+    <!-- ===================== -->
     <div
       class="bg-gradient-to-r from-green-700 via-emerald-600 to-teal-500 text-white rounded-3xl p-8 shadow-2xl border border-white/20 flex items-start justify-between gap-4"
     >
@@ -524,9 +557,11 @@ watch(
           <path
             d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
           />
+
           <polyline
             points="16 17 21 12 16 7"
           />
+
           <line
             x1="21"
             y1="12"
@@ -540,7 +575,9 @@ watch(
 
     </div>
 
+    <!-- ===================== -->
     <!-- Judul -->
+    <!-- ===================== -->
     <div
       class="mt-8 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4"
     >
@@ -573,21 +610,11 @@ watch(
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <path
-              d="M3 6h18"
-            />
-            <path
-              d="M8 6V4h8v2"
-            />
-            <path
-              d="M19 6l-1 14H6L5 6"
-            />
-            <path
-              d="M10 11v5"
-            />
-            <path
-              d="M14 11v5"
-            />
+            <path d="M3 6h18" />
+            <path d="M8 6V4h8v2" />
+            <path d="M19 6l-1 14H6L5 6" />
+            <path d="M10 11v5" />
+            <path d="M14 11v5" />
           </svg>
 
           Barang Terjual
@@ -606,6 +633,7 @@ watch(
           @click="downloadExcel"
           class="bg-white border border-emerald-600 text-emerald-700 px-6 py-3 rounded-xl font-semibold shadow-sm hover:shadow-lg hover:bg-emerald-50 hover:scale-105 transition inline-flex items-center justify-center gap-2"
         >
+
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="18"
@@ -620,9 +648,11 @@ watch(
             <path
               d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
             />
+
             <polyline
               points="7 10 12 15 17 10"
             />
+
             <line
               x1="12"
               y1="15"
@@ -646,9 +676,11 @@ watch(
 
     </div>
 
+    <!-- ===================== -->
     <!-- Search & Filter -->
+    <!-- ===================== -->
     <div
-      class="mt-6 flex flex-col lg:flex-row gap-4"
+      class="mt-6 flex flex-col xl:flex-row gap-4"
     >
 
       <!-- Search -->
@@ -693,7 +725,9 @@ watch(
         class="flex flex-col sm:flex-row gap-4"
       >
 
+        <!-- ===================== -->
         <!-- Divisi -->
+        <!-- ===================== -->
         <div class="relative sm:w-52">
 
           <svg
@@ -726,6 +760,7 @@ watch(
                 : 'border-slate-200'
             "
           >
+
             <span
               class="text-slate-700 font-medium truncate"
             >
@@ -756,6 +791,7 @@ watch(
                 points="6 9 12 15 18 9"
               />
             </svg>
+
           </button>
 
           <div
@@ -784,9 +820,7 @@ watch(
               Semua Divisi
 
               <svg
-                v-if="
-                  selectedDivisi === ''
-                "
+                v-if="selectedDivisi === ''"
                 xmlns="http://www.w3.org/2000/svg"
                 width="16"
                 height="16"
@@ -838,10 +872,11 @@ watch(
             </button>
 
           </div>
-
         </div>
 
+        <!-- ===================== -->
         <!-- Lokasi -->
+        <!-- ===================== -->
         <div class="relative sm:w-44">
 
           <svg
@@ -859,6 +894,7 @@ watch(
             <path
               d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"
             />
+
             <circle
               cx="12"
               cy="10"
@@ -879,6 +915,7 @@ watch(
                 : 'border-slate-200'
             "
           >
+
             <span
               class="text-slate-700 font-medium truncate"
             >
@@ -909,6 +946,7 @@ watch(
                 points="6 9 12 15 18 9"
               />
             </svg>
+
           </button>
 
           <div
@@ -937,9 +975,7 @@ watch(
               Semua Lokasi
 
               <svg
-                v-if="
-                  selectedLokasi === ''
-                "
+                v-if="selectedLokasi === ''"
                 xmlns="http://www.w3.org/2000/svg"
                 width="16"
                 height="16"
@@ -991,10 +1027,39 @@ watch(
             </button>
 
           </div>
-
         </div>
 
+        <!-- ===================== -->
+        <!-- Status -->
+        <!-- ===================== -->
+        <select
+          v-model="selectedStatus"
+          class="px-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+        >
+          <option value="">
+            Semua Status
+          </option>
+
+          <option value="Aktif">
+            Aktif
+          </option>
+
+          <option value="Maintenance">
+            Maintenance
+          </option>
+
+          <option value="Rusak">
+            Rusak
+          </option>
+
+          <option value="Hilang">
+            Hilang
+          </option>
+        </select>
+
+        <!-- ===================== -->
         <!-- Jumlah Data -->
+        <!-- ===================== -->
         <select
           v-model="itemsPerPage"
           class="px-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm"
@@ -1021,10 +1086,11 @@ watch(
         </select>
 
       </div>
-
     </div>
 
-    <!-- Summary -->
+    <!-- ===================== -->
+    <!-- Summary Dashboard -->
+    <!-- ===================== -->
     <div
       class="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
     >
@@ -1051,9 +1117,11 @@ watch(
             <path
               d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"
             />
+
             <path
               d="m3.3 7 8.7 5 8.7-5"
             />
+
             <path
               d="M12 22V12"
             />
@@ -1101,6 +1169,7 @@ watch(
               x2="12"
               y2="22"
             />
+
             <path
               d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
             />
@@ -1147,6 +1216,7 @@ watch(
             <path
               d="M3 3v18h18"
             />
+
             <path
               d="m19 9-5 5-4-4-3 3"
             />
@@ -1177,7 +1247,9 @@ watch(
 
     </div>
 
+    <!-- ===================== -->
     <!-- Card Inventory -->
+    <!-- ===================== -->
     <div
       class="grid lg:grid-cols-2 xl:grid-cols-3 gap-6 mt-6"
     >
@@ -1188,11 +1260,12 @@ watch(
         class="bg-white rounded-3xl border border-slate-200 border-t-[5px] border-t-emerald-500 shadow-md hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 ease-in-out p-5"
       >
 
-        <!-- Foto -->
+        <!-- Foto Kosong -->
         <div
           v-if="!barang.foto"
           class="w-full h-52 rounded-xl bg-slate-100 flex flex-col items-center justify-center gap-2 text-slate-400"
         >
+
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="28"
@@ -1211,11 +1284,13 @@ watch(
               height="18"
               rx="2"
             />
+
             <circle
               cx="9"
               cy="9"
               r="2"
             />
+
             <path
               d="m21 15-5-5L5 21"
             />
@@ -1226,8 +1301,10 @@ watch(
           >
             Belum ada foto
           </span>
+
         </div>
 
+        <!-- Foto -->
         <img
           v-else
           :src="barang.foto"
@@ -1235,12 +1312,14 @@ watch(
           class="w-full h-52 object-cover rounded-2xl shadow-md"
         />
 
+        <!-- Nama -->
         <h3
           class="text-lg font-bold text-slate-800 mt-4"
         >
           {{ barang.nama }}
         </h3>
 
+        <!-- Kode -->
         <p
           class="text-xs font-mono text-slate-400 tracking-wide mt-0.5"
         >
@@ -1256,9 +1335,11 @@ watch(
           <div
             class="flex items-center gap-3"
           >
+
             <span
               class="w-8 h-8 rounded-full bg-violet-50 text-violet-500 flex items-center justify-center shrink-0"
             >
+
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="15"
@@ -1273,12 +1354,14 @@ watch(
                 <path
                   d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
                 />
+
                 <circle
                   cx="12"
                   cy="7"
                   r="4"
                 />
               </svg>
+
             </span>
 
             <div class="min-w-0">
@@ -1296,15 +1379,18 @@ watch(
               </p>
 
             </div>
+
           </div>
 
           <!-- Divisi -->
           <div
             class="flex items-center gap-3"
           >
+
             <span
               class="w-8 h-8 rounded-full bg-sky-50 text-sky-500 flex items-center justify-center shrink-0"
             >
+
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="15"
@@ -1323,13 +1409,16 @@ watch(
                   height="20"
                   rx="1"
                 />
+
                 <path
                   d="M9 22v-4h6v4"
                 />
+
                 <path
                   d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01"
                 />
               </svg>
+
             </span>
 
             <div class="min-w-0">
@@ -1347,15 +1436,18 @@ watch(
               </span>
 
             </div>
+
           </div>
 
           <!-- Lokasi -->
           <div
             class="flex items-center gap-3"
           >
+
             <span
               class="w-8 h-8 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center shrink-0"
             >
+
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="15"
@@ -1370,12 +1462,14 @@ watch(
                 <path
                   d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"
                 />
+
                 <circle
                   cx="12"
                   cy="10"
                   r="3"
                 />
               </svg>
+
             </span>
 
             <div class="min-w-0">
@@ -1393,15 +1487,17 @@ watch(
               </p>
 
             </div>
+
           </div>
 
         </div>
 
-        <!-- Status -->
+        <!-- Divider -->
         <div
           class="border-t border-dashed border-slate-200 my-5"
         ></div>
 
+        <!-- Status -->
         <div class="mt-4">
 
           <span
@@ -1464,7 +1560,9 @@ watch(
 
     </div>
 
+    <!-- ===================== -->
     <!-- Pagination -->
+    <!-- ===================== -->
     <div
       v-if="totalPages > 1"
       class="flex items-center justify-center gap-3 mt-8"
