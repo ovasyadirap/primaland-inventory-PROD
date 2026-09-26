@@ -228,48 +228,220 @@ const downloadExcel = () => {
     return;
   }
 
-  const rows =
-    filteredInventory.value.map((item) => ({
-      "Kode Barang": item.kode,
-      "Nama Barang": item.nama,
-      "Divisi": item.divisi,
-      "PIC": item.pic || "-",
-      "Lokasi": item.lokasi || "-",
-      "Harga Perolehan":
-        item.harga || 0,
-      "Nilai Residu":
-        item.nilai_residu || 0,
-      "Persentase Residu":
-        item.persentase_residu
-          ? `${item.persentase_residu}%`
-          : "-",
-      "Status": item.status,
-    }));
+  // =======================
+  // Data Detail Inventory
+  // =======================
+  const rows = filteredInventory.value.map((item) => ({
+    "Kode Barang": item.kode,
+    "Nama Barang": item.nama,
+    "Divisi": item.divisi,
+    "PIC": item.pic || "-",
+    "Lokasi": item.lokasi || "-",
 
+    "Tanggal Pengadaan": item.tanggal
+      ? new Date(item.tanggal).toLocaleDateString("id-ID")
+      : "-",
+
+    "Harga Perolehan":
+      Number(item.harga) || 0,
+
+    "Persentase Residu":
+      item.persentase_residu !== null &&
+      item.persentase_residu !== undefined
+        ? `${item.persentase_residu}%`
+        : "-",
+
+    "Nilai Residu":
+      Number(item.nilai_residu) || 0,
+
+    "Masa Manfaat (Tahun)":
+      item.masa_manfaat || "-",
+
+    "Nilai Buku Saat Ini":
+      hitungNilaiSekarang(
+        item.harga,
+        item.tanggal,
+        item.masa_manfaat,
+        item.nilai_residu
+      ),
+
+    "Status": item.status,
+  }));
+
+  // =======================
+  // Worksheet Detail
+  // =======================
   const worksheet =
     XLSX.utils.json_to_sheet(rows);
 
   worksheet["!cols"] = [
-    { wch: 22 },
-    { wch: 28 },
-    { wch: 18 },
-    { wch: 18 },
-    { wch: 20 },
-    { wch: 20 },
-    { wch: 20 },
-    { wch: 20 },
-    { wch: 15 },
+    { wch: 24 }, // Kode Barang
+    { wch: 30 }, // Nama Barang
+    { wch: 18 }, // Divisi
+    { wch: 20 }, // PIC
+    { wch: 25 }, // Lokasi
+    { wch: 20 }, // Tanggal Pengadaan
+    { wch: 20 }, // Harga Perolehan
+    { wch: 20 }, // Persentase Residu
+    { wch: 20 }, // Nilai Residu
+    { wch: 22 }, // Masa Manfaat
+    { wch: 22 }, // Nilai Buku Saat Ini
+    { wch: 15 }, // Status
   ];
 
+  // Format angka nominal
+  for (let row = 2; row <= rows.length + 1; row++) {
+    // Harga Perolehan
+    if (worksheet[`G${row}`]) {
+      worksheet[`G${row}`].z = '#,##0';
+    }
+
+    // Nilai Residu
+    if (worksheet[`I${row}`]) {
+      worksheet[`I${row}`].z = '#,##0';
+    }
+
+    // Nilai Buku
+    if (worksheet[`K${row}`]) {
+      worksheet[`K${row}`].z = '#,##0';
+    }
+  }
+
+  // =======================
+  // Hitung Summary
+  // =======================
+  const totalBarang =
+    filteredInventory.value.length;
+
+  const totalNilaiPerolehan =
+    filteredInventory.value.reduce(
+      (total, item) =>
+        total + (Number(item.harga) || 0),
+      0
+    );
+
+  const totalNilaiResidu =
+    filteredInventory.value.reduce(
+      (total, item) =>
+        total +
+        (Number(item.nilai_residu) || 0),
+      0
+    );
+
+  const totalNilaiBuku =
+    filteredInventory.value.reduce(
+      (total, item) =>
+        total +
+        hitungNilaiSekarang(
+          item.harga,
+          item.tanggal,
+          item.masa_manfaat,
+          item.nilai_residu
+        ),
+      0
+    );
+
+  // =======================
+  // Data Summary
+  // =======================
+  const summaryData = [
+    [
+      "RINGKASAN INVENTARIS PRIMALAND 2",
+      "",
+    ],
+
+    [
+      "Tanggal Laporan",
+      new Date().toLocaleDateString("id-ID"),
+    ],
+
+    [
+      "Filter Divisi",
+      selectedDivisi.value ||
+        "Semua Divisi",
+    ],
+
+    [
+      "Filter Lokasi",
+      selectedLokasi.value ||
+        "Semua Lokasi",
+    ],
+
+    [
+      "Pencarian",
+      search.value || "-",
+    ],
+
+    ["", ""],
+
+    [
+      "Total Barang",
+      totalBarang,
+    ],
+
+    [
+      "Total Nilai Perolehan",
+      totalNilaiPerolehan,
+    ],
+
+    [
+      "Total Nilai Residu",
+      totalNilaiResidu,
+    ],
+
+    [
+      "Total Nilai Buku Saat Ini",
+      totalNilaiBuku,
+    ],
+  ];
+
+  // =======================
+  // Worksheet Summary
+  // =======================
+  const summarySheet =
+    XLSX.utils.aoa_to_sheet(summaryData);
+
+  summarySheet["!cols"] = [
+    { wch: 30 },
+    { wch: 30 },
+  ];
+
+  // Format angka summary
+  if (summarySheet["B8"]) {
+    summarySheet["B8"].z = '#,##0';
+  }
+
+  if (summarySheet["B9"]) {
+    summarySheet["B9"].z = '#,##0';
+  }
+
+  if (summarySheet["B10"]) {
+    summarySheet["B10"].z = '#,##0';
+  }
+
+  // =======================
+  // Buat Workbook
+  // =======================
   const workbook =
     XLSX.utils.book_new();
 
+  // Summary jadi sheet pertama
+  XLSX.utils.book_append_sheet(
+    workbook,
+    summarySheet,
+    "Summary"
+  );
+
+  // Detail jadi sheet kedua
   XLSX.utils.book_append_sheet(
     workbook,
     worksheet,
     "Inventaris Aktif"
   );
 
+  // =======================
+  // Nama File
+  // =======================
   const tanggal =
     new Date()
       .toLocaleDateString("id-ID")
