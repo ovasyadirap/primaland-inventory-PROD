@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { RouterLink } from "vue-router";
 import { supabase } from "../lib/supabase";
+import { bolehKelola } from "../lib/role";
 
 const inventoryTerjual = ref([]);
 const loading = ref(true);
@@ -391,7 +392,12 @@ onMounted(() => {
 
         <!-- Actions -->
         <div
-          class="grid grid-cols-2 gap-3 mt-6"
+          class="grid gap-3 mt-6"
+          :class="
+            bolehKelola
+              ? 'grid-cols-2'
+              : 'grid-cols-1'
+          "
         >
 
           <RouterLink
@@ -402,6 +408,7 @@ onMounted(() => {
           </RouterLink>
 
           <RouterLink
+            v-if="bolehKelola"
             :to="`/edit-inventory/${barang.kode}`"
             class="text-center bg-slate-100 text-slate-700 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-200 transition"
           >

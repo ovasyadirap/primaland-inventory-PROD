@@ -4,6 +4,7 @@ import { RouterLink, useRouter } from "vue-router";
 import { supabase } from "../lib/supabase";
 import * as XLSX from "xlsx";
 import { hitungNilaiSekarang } from "../lib/penyusutan";
+import { bolehKelola, isViewer } from "../lib/role";
 
 const inventory = ref([]);
 const router = useRouter();
@@ -212,14 +213,19 @@ const hapusBarang = async (id) => {
 
   if (!yakin) return;
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("inventory")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .select();
 
-  if (error) {
-    console.error(error);
-    alert("Gagal menghapus data.");
+  // Kalau diblokir aturan RLS, Supabase tidak kasih error,
+  // hanya mengembalikan 0 baris — jadi dicek juga di sini
+  if (error || !data || data.length === 0) {
+    console.error(
+      error || "Penghapusan diblokir: tidak ada baris yang terhapus"
+    );
+    alert("Gagal menghapus data. Akun ini tidak punya izin hapus.");
     return;
   }
 
@@ -537,6 +543,29 @@ watch(
         >
           Inventory Management System
         </p>
+
+        <!-- Penanda akun direktur (view-only) -->
+        <span
+          v-if="isViewer"
+          class="inline-flex items-center gap-1.5 mt-3 bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+
+          Mode Lihat Saja
+        </span>
       </div>
 
       <button
@@ -666,6 +695,7 @@ watch(
 
         <!-- Tambah -->
         <RouterLink
+          v-if="bolehKelola"
           to="/add-inventory"
           class="bg-gradient-to-r from-green-700 via-emerald-600 to-teal-500 text-white px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-xl hover:scale-105 transition text-center"
         >
@@ -1541,6 +1571,7 @@ watch(
           </RouterLink>
 
           <RouterLink
+            v-if="bolehKelola"
             :to="`/edit-inventory/${barang.kode}`"
             class="text-center bg-slate-100 text-slate-600 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-200 transition-colors"
           >
@@ -1548,6 +1579,7 @@ watch(
           </RouterLink>
 
           <button
+            v-if="bolehKelola"
             @click="hapusBarang(barang.id)"
             class="text-center bg-white text-red-500 py-2.5 rounded-lg text-sm font-semibold border border-red-100 hover:bg-red-50 hover:text-red-600 transition-colors"
           >

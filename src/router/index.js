@@ -21,6 +21,7 @@ const routes = [
     path: "/sold-inventory",
     name: "sold-inventory",
     component: SoldInventory,
+    meta: { requiresAuth: true },
   },
 
   {
@@ -33,14 +34,14 @@ const routes = [
     path: "/add-inventory",
     name: "add-inventory",
     component: AddInventory,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hanyaKelola: true },
   },
 
   {
     path: "/edit-inventory/:kode",
     name: "edit-inventory",
     component: EditInventory,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hanyaKelola: true },
   },
 
   {
@@ -78,9 +79,13 @@ router.beforeEach(async (to, from, next) => {
 
   const { data } = await supabase.auth.getSession();
   const sudahLogin = !!data.session;
+  const role = data.session?.user?.app_metadata?.role;
 
   if (to.meta.requiresAuth && !sudahLogin) {
     next("/login");
+  } else if (to.meta.hanyaKelola && role === "viewer") {
+    // akun direktur (view-only) tidak boleh buka halaman tambah / edit / QR
+    next("/");
   } else if (to.name === "login" && sudahLogin) {
     next("/"); 
   } else {
