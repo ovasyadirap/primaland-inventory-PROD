@@ -50,7 +50,7 @@ const handleLogin = async () => {
             type="email"
             required
             placeholder="nama@primaland2.id"
-            class="mt-1.5 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+            class="kotak-isian mt-1.5"
           />
         </div>
 
@@ -61,7 +61,7 @@ const handleLogin = async () => {
             type="password"
             required
             placeholder="••••••••"
-            class="mt-1.5 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+            class="kotak-isian mt-1.5"
           />
         </div>
 

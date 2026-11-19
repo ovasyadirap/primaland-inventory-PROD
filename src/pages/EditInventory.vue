@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter, RouterLink } from "vue-router";
 import { supabase } from "../lib/supabase";
 import { v4 as uuidv4 } from "uuid";
+import PilihanKategori from "../components/PilihanKategori.vue";
+import { ambilDaftarNilai, samakanEjaan } from "../lib/kategori";
 
 const route = useRoute();
 const router = useRouter();
@@ -16,6 +18,10 @@ const inventoryId = ref(null);
 
 // Untuk mengetahui apakah kode berubah
 const kodeAwal = ref("");
+
+// Untuk pilihan Divisi, supaya tidak ada yang dobel
+// (misalnya "Markom" dan "MARKOM")
+const daftarDivisi = ref([]);
 
 const form = ref({
   kode: "",
@@ -267,6 +273,20 @@ const updateData = async () => {
     form.value.kode = kodeBersih;
 
     // ======================
+    // Samakan Ejaan Divisi
+    // ======================
+    // Ambil daftar terbaru dulu (bisa jadi tim lain baru
+    // menambah divisi saat form ini sedang dibuka)
+    const daftarTerbaru =
+      (await ambilDaftarNilai("divisi")) ??
+      daftarDivisi.value;
+
+    form.value.divisi = samakanEjaan(
+      daftarTerbaru,
+      form.value.divisi
+    );
+
+    // ======================
     // Upload Foto Baru
     // ======================
     let fotoURL = form.value.foto;
@@ -422,8 +442,11 @@ const updateData = async () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   loadData();
+
+  daftarDivisi.value =
+    (await ambilDaftarNilai("divisi")) ?? [];
 });
 </script>
 
@@ -461,14 +484,14 @@ onMounted(() => {
 
         <!-- Kode -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Kode Barang
           </label>
 
           <input
             v-model="form.kode"
             type="text"
-            class="w-full mt-2 border rounded-xl p-3 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+            class="kotak-isian mt-2"
           />
 
           <p class="text-xs text-gray-500 mt-1">
@@ -478,68 +501,69 @@ onMounted(() => {
 
         <!-- Nama -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Nama Barang
           </label>
 
           <input
             v-model="form.nama"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
         <!-- Divisi -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Divisi
           </label>
 
-          <input
+          <PilihanKategori
             v-model="form.divisi"
-            class="w-full mt-2 border rounded-xl p-3"
+            :opsi="daftarDivisi"
+            label="divisi"
           />
         </div>
 
         <!-- PIC -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             PIC
           </label>
 
           <input
             v-model="form.pic"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
         <!-- Lokasi -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Lokasi
           </label>
 
           <input
             v-model="form.lokasi"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
         <!-- Tanggal Pengadaan -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Tanggal Pengadaan
           </label>
 
           <input
             v-model="form.tanggal"
             type="date"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
         <!-- Qty -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Qty
           </label>
 
@@ -547,13 +571,13 @@ onMounted(() => {
             v-model="form.qty"
             type="number"
             min="1"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
         <!-- Harga -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Harga Perolehan
           </label>
 
@@ -561,19 +585,19 @@ onMounted(() => {
             v-model="form.harga"
             type="number"
             min="0"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
         <!-- Nilai Residu -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Persentase Nilai Residu
           </label>
 
           <select
             v-model="form.persentaseResidu"
-            class="w-full mt-2 border rounded-xl p-3 bg-white"
+            class="kotak-isian mt-2"
           >
             <option
               value=""
@@ -619,7 +643,7 @@ onMounted(() => {
               min="0"
               max="100"
               placeholder="Contoh: 15"
-              class="w-full mt-2 border rounded-xl p-3"
+              class="kotak-isian mt-2"
             />
           </div>
 
@@ -652,7 +676,7 @@ onMounted(() => {
 
         <!-- Masa Manfaat -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Masa Manfaat (Tahun)
           </label>
 
@@ -660,7 +684,7 @@ onMounted(() => {
             v-model="form.masaManfaat"
             type="number"
             min="1"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
 
           <p
@@ -672,13 +696,13 @@ onMounted(() => {
 
         <!-- Status -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Status
           </label>
 
           <select
             v-model="form.status"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           >
             <option>Aktif</option>
             <option>Maintenance</option>
@@ -694,14 +718,14 @@ onMounted(() => {
         <div
           v-if="form.status === 'Terjual'"
         >
-          <label class="font-semibold">
+          <label class="label-isian">
             Tanggal Penjualan
           </label>
 
           <input
             v-model="form.tanggalPenjualan"
             type="date"
-            class="w-full mt-2 border border-emerald-300 rounded-xl p-3 focus:ring-2 focus:ring-emerald-400 outline-none"
+            class="kotak-isian mt-2"
           />
 
           <p
@@ -715,7 +739,7 @@ onMounted(() => {
         <div
           v-if="form.status === 'Terjual'"
         >
-          <label class="font-semibold">
+          <label class="label-isian">
             Harga Jual
           </label>
 
@@ -724,7 +748,7 @@ onMounted(() => {
             type="number"
             min="0"
             placeholder="Contoh: 150000000"
-            class="w-full mt-2 border border-emerald-300 rounded-xl p-3 focus:ring-2 focus:ring-emerald-400 outline-none"
+            class="kotak-isian mt-2"
           />
 
           <div
@@ -747,7 +771,7 @@ onMounted(() => {
 
         <!-- Foto -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Foto Barang
           </label>
 
@@ -755,7 +779,7 @@ onMounted(() => {
             type="file"
             accept="image/*"
             @change="handleFileChange"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
@@ -775,21 +799,21 @@ onMounted(() => {
         <img
           :src="previewFoto"
           alt="Preview"
-          class="w-64 h-64 object-cover rounded-xl border shadow-lg"
+          class="w-64 h-64 object-cover rounded-xl border border-slate-200 shadow-lg"
         />
       </div>
 
       <!-- Kelengkapan -->
       <div class="mt-6">
 
-        <label class="font-semibold">
+        <label class="label-isian">
           Kelengkapan Barang
         </label>
 
         <textarea
           v-model="form.kelengkapan"
           rows="5"
-          class="w-full mt-2 border rounded-xl p-3"
+          class="kotak-isian mt-2"
         ></textarea>
 
       </div>

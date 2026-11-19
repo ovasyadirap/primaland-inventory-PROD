@@ -208,7 +208,7 @@ onMounted(() => {
         v-model="search"
         type="text"
         placeholder="Cari nama, kode, atau divisi..."
-        class="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+        class="kotak-isian"
       />
 
     </div>

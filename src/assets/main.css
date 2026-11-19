@@ -1,1 +1,24 @@
 @import "tailwindcss";
+
+/* =======================
+   Tampilan Isian Form
+   =======================
+   Dipakai semua kotak isian di aplikasi (Login, Dashboard, Tambah,
+   Edit, Barang Terjual) supaya tampilannya seragam.
+
+   Mau ganti tampilan semua kotak isian sekaligus? Ubah di sini saja.
+*/
+@layer components {
+  /* Kotak isian: input, select, dan textarea */
+  .kotak-isian {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3;
+    @apply text-slate-800 shadow-sm outline-none transition;
+    @apply placeholder:text-slate-400;
+    @apply focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15;
+  }
+
+  /* Tulisan nama isian di atas kotak */
+  .label-isian {
+    @apply block text-sm font-semibold text-slate-700;
+  }
+}

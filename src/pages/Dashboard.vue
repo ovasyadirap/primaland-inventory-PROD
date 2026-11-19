@@ -5,6 +5,13 @@ import { supabase } from "../lib/supabase";
 import * as XLSX from "xlsx";
 import { hitungNilaiSekarang } from "../lib/penyusutan";
 import { bolehKelola, isViewer } from "../lib/role";
+import { gabungkanNilai, rapikanTeks } from "../lib/kategori";
+import PilihanDropdown from "../components/PilihanDropdown.vue";
+
+// Dua tulisan dianggap sama walau beda huruf besar/kecil atau spasi
+// ("MARKOM" = "Markom")
+const samaTeks = (a, b) =>
+  rapikanTeks(a).toLowerCase() === rapikanTeks(b).toLowerCase();
 
 const inventory = ref([]);
 const router = useRouter();
@@ -16,25 +23,6 @@ const currentPage = ref(1);
 const selectedDivisi = ref("");
 const selectedLokasi = ref("");
 const selectedStatus = ref("");
-
-const divisiDropdownOpen = ref(false);
-const lokasiDropdownOpen = ref(false);
-
-// =======================
-// Pilih Divisi
-// =======================
-const pilihDivisi = (divisi) => {
-  selectedDivisi.value = divisi;
-  divisiDropdownOpen.value = false;
-};
-
-// =======================
-// Pilih Lokasi
-// =======================
-const pilihLokasi = (lokasi) => {
-  selectedLokasi.value = lokasi;
-  lokasiDropdownOpen.value = false;
-};
 
 // =======================
 // Ambil Data Inventory
@@ -76,28 +64,54 @@ const jumlahTerjual = computed(() => {
 // =======================
 // Daftar Divisi
 // =======================
-const daftarDivisi = computed(() => {
-  return [
-    ...new Set(
-      activeInventory.value
-        .map((item) => item.divisi)
-        .filter(Boolean)
-    ),
-  ];
-});
+// Divisi yang hanya beda huruf besar/kecil digabung jadi satu pilihan
+const daftarDivisi = computed(() =>
+  gabungkanNilai(
+    activeInventory.value.map((item) => item.divisi)
+  )
+);
 
 // =======================
 // Daftar Lokasi
 // =======================
-const daftarLokasi = computed(() => {
-  return [
-    ...new Set(
-      activeInventory.value
-        .map((item) => item.lokasi)
-        .filter(Boolean)
-    ),
-  ];
-});
+// Lokasi yang hanya beda huruf besar/kecil digabung jadi satu pilihan
+const daftarLokasi = computed(() =>
+  gabungkanNilai(
+    activeInventory.value.map((item) => item.lokasi)
+  )
+);
+
+// =======================
+// Isi Dropdown Filter
+// =======================
+const opsiDivisi = computed(() => [
+  { nilai: "", teks: "Semua Divisi" },
+  ...daftarDivisi.value.map((nama) => ({
+    nilai: nama,
+    teks: nama,
+  })),
+]);
+
+const opsiLokasi = computed(() => [
+  { nilai: "", teks: "Semua Lokasi" },
+  ...daftarLokasi.value.map((nama) => ({
+    nilai: nama,
+    teks: nama,
+  })),
+]);
+
+const opsiStatus = [
+  { nilai: "", teks: "Semua Status" },
+  { nilai: "Aktif", teks: "Aktif" },
+  { nilai: "Maintenance", teks: "Maintenance" },
+  { nilai: "Rusak", teks: "Rusak" },
+  { nilai: "Hilang", teks: "Hilang" },
+];
+
+const opsiJumlah = [5, 10, 25, 50, 100].map((jumlah) => ({
+  nilai: jumlah,
+  teks: `${jumlah} Data`,
+}));
 
 // =======================
 // Filter Search, Divisi,
@@ -120,13 +134,15 @@ const filteredInventory = computed(() => {
         ?.toLowerCase()
         .includes(keyword);
 
+    // Dicocokkan tanpa membedakan huruf besar/kecil, supaya barang
+    // berdivisi "MARKOM" ikut muncul saat memilih "Markom"
     const cocokDivisi =
       selectedDivisi.value === "" ||
-      item.divisi === selectedDivisi.value;
+      samaTeks(item.divisi, selectedDivisi.value);
 
     const cocokLokasi =
       selectedLokasi.value === "" ||
-      item.lokasi === selectedLokasi.value;
+      samaTeks(item.lokasi, selectedLokasi.value);
 
     const cocokStatus =
       selectedStatus.value === "" ||
@@ -746,7 +762,7 @@ watch(
           v-model="search"
           type="text"
           placeholder="Cari nama, kode barang, atau PIC..."
-          class="w-full pl-12 pr-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+          class="kotak-isian pl-12"
         />
 
       </div>
@@ -758,362 +774,80 @@ watch(
         <!-- ===================== -->
         <!-- Divisi -->
         <!-- ===================== -->
-        <div class="relative sm:w-52">
-
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
-          >
-            <polygon
-              points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"
-            />
-          </svg>
-
-          <button
-            type="button"
-            @click="
-              divisiDropdownOpen =
-                !divisiDropdownOpen
-            "
-            class="w-full flex items-center justify-between pl-12 pr-4 py-3 rounded-2xl border bg-white shadow-sm outline-none transition"
-            :class="
-              divisiDropdownOpen
-                ? 'border-emerald-500 ring-2 ring-emerald-500'
-                : 'border-slate-200'
-            "
-          >
-
-            <span
-              class="text-slate-700 font-medium truncate"
-            >
-              {{
-                selectedDivisi ||
-                "Semua Divisi"
-              }}
-            </span>
-
+        <PilihanDropdown
+          v-model="selectedDivisi"
+          :opsi="opsiDivisi"
+          class="sm:w-52"
+        >
+          <template #ikon>
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="text-slate-400 transition-transform shrink-0"
-              :class="
-                divisiDropdownOpen
-                  ? 'rotate-180'
-                  : ''
-              "
             >
-              <polyline
-                points="6 9 12 15 18 9"
+              <polygon
+                points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"
               />
             </svg>
-
-          </button>
-
-          <div
-            v-if="divisiDropdownOpen"
-            @click="
-              divisiDropdownOpen = false
-            "
-            class="fixed inset-0 z-20"
-          ></div>
-
-          <div
-            v-if="divisiDropdownOpen"
-            class="absolute z-30 mt-2 w-full bg-white rounded-2xl shadow-xl border border-slate-200 py-2 max-h-64 overflow-auto"
-          >
-
-            <button
-              type="button"
-              @click="pilihDivisi('')"
-              class="w-full text-left px-4 py-2.5 text-sm font-medium transition flex items-center justify-between"
-              :class="
-                selectedDivisi === ''
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-slate-700 hover:bg-slate-50'
-              "
-            >
-              Semua Divisi
-
-              <svg
-                v-if="selectedDivisi === ''"
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline
-                  points="20 6 9 17 4 12"
-                />
-              </svg>
-            </button>
-
-            <button
-              v-for="divisi in daftarDivisi"
-              :key="divisi"
-              type="button"
-              @click="pilihDivisi(divisi)"
-              class="w-full text-left px-4 py-2.5 text-sm font-medium transition flex items-center justify-between"
-              :class="
-                selectedDivisi === divisi
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-slate-700 hover:bg-slate-50'
-              "
-            >
-              {{ divisi }}
-
-              <svg
-                v-if="
-                  selectedDivisi === divisi
-                "
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline
-                  points="20 6 9 17 4 12"
-                />
-              </svg>
-            </button>
-
-          </div>
-        </div>
+          </template>
+        </PilihanDropdown>
 
         <!-- ===================== -->
         <!-- Lokasi -->
         <!-- ===================== -->
-        <div class="relative sm:w-44">
-
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
-          >
-            <path
-              d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"
-            />
-
-            <circle
-              cx="12"
-              cy="10"
-              r="3"
-            />
-          </svg>
-
-          <button
-            type="button"
-            @click="
-              lokasiDropdownOpen =
-                !lokasiDropdownOpen
-            "
-            class="w-full flex items-center justify-between pl-12 pr-4 py-3 rounded-2xl border bg-white shadow-sm outline-none transition"
-            :class="
-              lokasiDropdownOpen
-                ? 'border-emerald-500 ring-2 ring-emerald-500'
-                : 'border-slate-200'
-            "
-          >
-
-            <span
-              class="text-slate-700 font-medium truncate"
-            >
-              {{
-                selectedLokasi ||
-                "Semua Lokasi"
-              }}
-            </span>
-
+        <PilihanDropdown
+          v-model="selectedLokasi"
+          :opsi="opsiLokasi"
+          class="sm:w-44"
+        >
+          <template #ikon>
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="text-slate-400 transition-transform shrink-0"
-              :class="
-                lokasiDropdownOpen
-                  ? 'rotate-180'
-                  : ''
-              "
             >
-              <polyline
-                points="6 9 12 15 18 9"
+              <path
+                d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"
+              />
+
+              <circle
+                cx="12"
+                cy="10"
+                r="3"
               />
             </svg>
-
-          </button>
-
-          <div
-            v-if="lokasiDropdownOpen"
-            @click="
-              lokasiDropdownOpen = false
-            "
-            class="fixed inset-0 z-20"
-          ></div>
-
-          <div
-            v-if="lokasiDropdownOpen"
-            class="absolute z-30 mt-2 w-full bg-white rounded-2xl shadow-xl border border-slate-200 py-2 max-h-64 overflow-auto"
-          >
-
-            <button
-              type="button"
-              @click="pilihLokasi('')"
-              class="w-full text-left px-4 py-2.5 text-sm font-medium transition flex items-center justify-between"
-              :class="
-                selectedLokasi === ''
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-slate-700 hover:bg-slate-50'
-              "
-            >
-              Semua Lokasi
-
-              <svg
-                v-if="selectedLokasi === ''"
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline
-                  points="20 6 9 17 4 12"
-                />
-              </svg>
-            </button>
-
-            <button
-              v-for="lokasi in daftarLokasi"
-              :key="lokasi"
-              type="button"
-              @click="pilihLokasi(lokasi)"
-              class="w-full text-left px-4 py-2.5 text-sm font-medium transition flex items-center justify-between"
-              :class="
-                selectedLokasi === lokasi
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-slate-700 hover:bg-slate-50'
-              "
-            >
-              {{ lokasi }}
-
-              <svg
-                v-if="
-                  selectedLokasi === lokasi
-                "
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline
-                  points="20 6 9 17 4 12"
-                />
-              </svg>
-            </button>
-
-          </div>
-        </div>
+          </template>
+        </PilihanDropdown>
 
         <!-- ===================== -->
         <!-- Status -->
         <!-- ===================== -->
-        <select
+        <PilihanDropdown
           v-model="selectedStatus"
-          class="px-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
-        >
-          <option value="">
-            Semua Status
-          </option>
-
-          <option value="Aktif">
-            Aktif
-          </option>
-
-          <option value="Maintenance">
-            Maintenance
-          </option>
-
-          <option value="Rusak">
-            Rusak
-          </option>
-
-          <option value="Hilang">
-            Hilang
-          </option>
-        </select>
+          :opsi="opsiStatus"
+          class="sm:w-44"
+        />
 
         <!-- ===================== -->
         <!-- Jumlah Data -->
         <!-- ===================== -->
-        <select
+        <PilihanDropdown
           v-model="itemsPerPage"
-          class="px-5 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm"
-        >
-          <option :value="5">
-            5 Data
-          </option>
-
-          <option :value="10">
-            10 Data
-          </option>
-
-          <option :value="25">
-            25 Data
-          </option>
-
-          <option :value="50">
-            50 Data
-          </option>
-
-          <option :value="100">
-            100 Data
-          </option>
-        </select>
+          :opsi="opsiJumlah"
+          class="sm:w-32"
+        />
 
       </div>
     </div>

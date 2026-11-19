@@ -140,7 +140,7 @@ onMounted(() => {
 
           <!-- QR -->
           <div
-            class="inline-block bg-white p-5 rounded-2xl border shadow-lg"
+            class="inline-block bg-white p-5 rounded-2xl border border-slate-200 shadow-lg"
           >
             <QRCodeVue3
               :value="qrValue"
@@ -162,7 +162,7 @@ onMounted(() => {
           <!-- Divisi -->
           <div class="mt-6">
             <div
-              class="bg-slate-50 border rounded-xl py-4 px-5"
+              class="bg-slate-50 border border-slate-200 rounded-xl py-4 px-5"
             >
               <p class="text-sm text-gray-500">
                 Divisi

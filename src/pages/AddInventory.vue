@@ -1,8 +1,10 @@
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted } from "vue";
 import { saranMasaManfaat } from "../lib/penyusutan";
 import { RouterLink, useRouter } from "vue-router";
 import { supabase } from "../lib/supabase";
+import PilihanKategori from "../components/PilihanKategori.vue";
+import { ambilDaftarNilai, samakanEjaan } from "../lib/kategori";
 
 const router = useRouter();
 
@@ -30,6 +32,18 @@ const form = ref({
 });
 
 const masaManfaatDisentuh = ref(false);
+
+// ======================
+// Daftar Divisi
+// ======================
+// Untuk pilihan Divisi, supaya tidak ada yang dobel
+// (misalnya "Markom" dan "MARKOM")
+const daftarDivisi = ref([]);
+
+onMounted(async () => {
+  daftarDivisi.value =
+    (await ambilDaftarNilai("divisi")) ?? [];
+});
 
 // ======================
 // Saran Masa Manfaat
@@ -195,6 +209,20 @@ const simpanData = async () => {
     form.value.kode = kodeBersih;
 
     // ======================
+    // Samakan Ejaan Divisi
+    // ======================
+    // Ambil daftar terbaru dulu (bisa jadi tim lain baru
+    // menambah divisi saat form ini sedang dibuka)
+    const daftarTerbaru =
+      (await ambilDaftarNilai("divisi")) ??
+      daftarDivisi.value;
+
+    form.value.divisi = samakanEjaan(
+      daftarTerbaru,
+      form.value.divisi
+    );
+
+    // ======================
     // Upload Foto
     // ======================
     let fotoURL = "";
@@ -324,7 +352,7 @@ const simpanData = async () => {
 
         <!-- Kode -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Kode Barang
           </label>
 
@@ -332,7 +360,7 @@ const simpanData = async () => {
             v-model="form.kode"
             type="text"
             placeholder="PL2-PROYEK-001-2026"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
 
           <p class="text-xs text-gray-500 mt-1">
@@ -342,7 +370,7 @@ const simpanData = async () => {
 
         <!-- Nama -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Nama Barang
           </label>
 
@@ -350,27 +378,26 @@ const simpanData = async () => {
             v-model="form.nama"
             type="text"
             placeholder="Laptop ASUS"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
         <!-- Divisi -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Divisi
           </label>
 
-          <input
+          <PilihanKategori
             v-model="form.divisi"
-            type="text"
-            placeholder="Operasional"
-            class="w-full mt-2 border rounded-xl p-3"
+            :opsi="daftarDivisi"
+            label="divisi"
           />
         </div>
 
         <!-- PIC -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             PIC
           </label>
 
@@ -378,13 +405,13 @@ const simpanData = async () => {
             v-model="form.pic"
             type="text"
             placeholder="Nama PIC"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
         <!-- Lokasi -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Lokasi
           </label>
 
@@ -392,26 +419,26 @@ const simpanData = async () => {
             v-model="form.lokasi"
             type="text"
             placeholder="Contoh: Gudang A"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
         <!-- Tanggal -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Tanggal Pengadaan
           </label>
 
           <input
             v-model="form.tanggal"
             type="date"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
         <!-- Qty -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Qty
           </label>
 
@@ -419,13 +446,13 @@ const simpanData = async () => {
             v-model="form.qty"
             type="number"
             min="1"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
         <!-- Harga -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Harga
           </label>
 
@@ -434,19 +461,19 @@ const simpanData = async () => {
             type="number"
             min="0"
             placeholder="8500000"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
         </div>
 
         <!-- Persentase Nilai Residu -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Persentase Nilai Residu
           </label>
 
           <select
             v-model="form.persentaseResidu"
-            class="w-full mt-2 border rounded-xl p-3 bg-white"
+            class="kotak-isian mt-2"
           >
             <option value="" disabled>
               Pilih Persentase
@@ -486,7 +513,7 @@ const simpanData = async () => {
               min="0"
               max="100"
               placeholder="Contoh: 15"
-              class="w-full mt-2 border rounded-xl p-3"
+              class="kotak-isian mt-2"
             />
           </div>
 
@@ -519,7 +546,7 @@ const simpanData = async () => {
 
         <!-- Masa Manfaat -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Masa Manfaat (Tahun)
           </label>
 
@@ -528,7 +555,7 @@ const simpanData = async () => {
             @input="masaManfaatDisentuh = true"
             type="number"
             min="1"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           />
 
           <p
@@ -542,13 +569,13 @@ const simpanData = async () => {
 
         <!-- Status -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Status
           </label>
 
           <select
             v-model="form.status"
-            class="w-full mt-2 border rounded-xl p-3"
+            class="kotak-isian mt-2"
           >
             <option>Aktif</option>
             <option>Maintenance</option>
@@ -559,7 +586,7 @@ const simpanData = async () => {
 
         <!-- Foto -->
         <div>
-          <label class="font-semibold">
+          <label class="label-isian">
             Foto Barang
           </label>
 
@@ -567,7 +594,7 @@ const simpanData = async () => {
             type="file"
             accept="image/*"
             @change="pilihFoto"
-            class="w-full mt-2 border rounded-xl p-2"
+            class="kotak-isian mt-2 px-3 py-2"
           />
 
           <p
@@ -583,7 +610,7 @@ const simpanData = async () => {
       <!-- Kelengkapan -->
       <div class="mt-6">
 
-        <label class="font-semibold">
+        <label class="label-isian">
           Kelengkapan Barang
         </label>
 
@@ -595,7 +622,7 @@ const simpanData = async () => {
 - Mouse
 - Tas Laptop
 - Surat Garansi"
-          class="w-full mt-2 border rounded-xl p-3"
+          class="kotak-isian mt-2"
         ></textarea>
 
       </div>
