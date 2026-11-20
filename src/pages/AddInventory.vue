@@ -5,6 +5,7 @@ import { RouterLink, useRouter } from "vue-router";
 import { supabase } from "../lib/supabase";
 import PilihanKategori from "../components/PilihanKategori.vue";
 import { ambilDaftarNilai, samakanEjaan } from "../lib/kategori";
+import imageCompression from "browser-image-compression";
 
 const router = useRouter();
 
@@ -20,11 +21,8 @@ const form = ref({
   tanggal: "",
   qty: 1,
   harga: "",
-
-  // Nilai Residu
   persentaseResidu: "",
   customResidu: "",
-
   masaManfaat: 4,
   status: "Aktif",
   kelengkapan: "",
@@ -36,8 +34,6 @@ const masaManfaatDisentuh = ref(false);
 // ======================
 // Daftar Divisi
 // ======================
-// Untuk pilihan Divisi, supaya tidak ada yang dobel
-// (misalnya "Markom" dan "MARKOM")
 const daftarDivisi = ref([]);
 
 onMounted(async () => {
@@ -52,7 +48,8 @@ watch(
   () => form.value.harga,
   (hargaBaru) => {
     if (!masaManfaatDisentuh.value) {
-      form.value.masaManfaat = saranMasaManfaat(hargaBaru);
+      form.value.masaManfaat =
+        saranMasaManfaat(hargaBaru);
     }
   }
 );
@@ -98,7 +95,7 @@ const formatRupiah = (angka) => {
 // Pilih Foto
 // ======================
 const pilihFoto = (event) => {
-  const file = event.target.files[0];
+  const file = event.target.files?.[0];
 
   if (!file) {
     selectedFile.value = null;
@@ -109,32 +106,77 @@ const pilihFoto = (event) => {
 };
 
 // ======================
-// Upload Foto
+// Upload Foto + Auto Compress
 // ======================
 const uploadFoto = async () => {
   if (!selectedFile.value) return "";
 
   const file = selectedFile.value;
 
-  const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
+  // Validasi format gambar
+  if (!file.type.startsWith("image/")) {
+    throw new Error("File harus berupa gambar.");
+  }
 
-  const { error: uploadError } = await supabase.storage
-    .from("inventory")
-    .upload(fileName, file);
+  // Validasi ukuran foto asli maksimal 20 MB
+  if (file.size > 20 * 1024 * 1024) {
+    throw new Error("Ukuran foto maksimal 20 MB.");
+  }
+
+  // Kompres dan resize otomatis
+  const options = {
+    maxSizeMB: 1.5,
+    maxWidthOrHeight: 1600,
+    useWebWorker: true,
+    fileType: "image/jpeg",
+  };
+
+  const compressedFile = await imageCompression(
+    file,
+    options
+  );
+
+  console.log(
+    "Ukuran foto asli:",
+    (file.size / 1024 / 1024).toFixed(2),
+    "MB"
+  );
+
+  console.log(
+    "Ukuran setelah kompresi:",
+    (compressedFile.size / 1024 / 1024).toFixed(2),
+    "MB"
+  );
+
+  // Nama file aman menggunakan UUID
+  const fileName = `${crypto.randomUUID()}.jpg`;
+
+  // Upload hasil kompresi ke Supabase
+  const { data, error: uploadError } =
+    await supabase.storage
+      .from("inventory")
+      .upload(fileName, compressedFile, {
+        upsert: false,
+        cacheControl: "3600",
+        contentType: "image/jpeg",
+      });
 
   if (uploadError) {
+    console.error("Detail upload gagal:", uploadError);
     throw uploadError;
   }
 
-  const { data } = supabase.storage
-    .from("inventory")
-    .getPublicUrl(fileName);
+  // Ambil URL foto
+  const { data: publicData } =
+    supabase.storage
+      .from("inventory")
+      .getPublicUrl(data.path);
 
-  return data.publicUrl;
+  return publicData.publicUrl;
 };
 
 // ======================
-// Simpan Data
+// Simpan Data Inventaris
 // ======================
 const simpanData = async () => {
   // Validasi data wajib
@@ -149,13 +191,13 @@ const simpanData = async () => {
     return;
   }
 
-  // Persentase residu wajib dipilih
+  // Validasi persentase residu
   if (!form.value.persentaseResidu) {
     alert("Silakan pilih persentase nilai residu.");
     return;
   }
 
-  // Validasi custom
+  // Validasi custom residu
   if (form.value.persentaseResidu === "custom") {
     const custom = Number(form.value.customResidu);
 
@@ -211,8 +253,6 @@ const simpanData = async () => {
     // ======================
     // Samakan Ejaan Divisi
     // ======================
-    // Ambil daftar terbaru dulu (bisa jadi tim lain baru
-    // menambah divisi saat form ini sedang dibuka)
     const daftarTerbaru =
       (await ambilDaftarNilai("divisi")) ??
       daftarDivisi.value;
@@ -236,7 +276,9 @@ const simpanData = async () => {
           uploadError
         );
 
-        alert("Upload foto gagal.");
+        alert(
+          `Upload foto gagal: ${uploadError.message}`
+        );
         return;
       }
     }
@@ -254,36 +296,22 @@ const simpanData = async () => {
           pic: form.value.pic,
           lokasi: form.value.lokasi,
           tanggal: form.value.tanggal || null,
-
           qty: Number(form.value.qty) || 1,
-
           harga: Number(form.value.harga) || 0,
-
           persentase_residu:
             persentaseResiduAktif.value,
-
-          nilai_residu:
-            nilaiResidu.value,
-
+          nilai_residu: nilaiResidu.value,
           masa_manfaat:
             Number(form.value.masaManfaat) || null,
-
           status: form.value.status,
-
-          kelengkapan:
-            form.value.kelengkapan,
-
+          kelengkapan: form.value.kelengkapan,
           foto: fotoURL || null,
         },
       ]);
 
     if (error) {
-      console.error(
-        "Insert error:",
-        error
-      );
+      console.error("Insert error:", error);
 
-      // Unique kode
       if (error.code === "23505") {
         alert(
           `Kode barang "${form.value.kode}" sudah digunakan. Silakan gunakan kode lain.`
@@ -292,25 +320,20 @@ const simpanData = async () => {
       }
 
       alert(
-        "Gagal menyimpan data inventaris."
+        `Gagal menyimpan data inventaris: ${error.message}`
       );
 
       return;
     }
 
-    alert(
-      "Inventaris berhasil ditambahkan!"
-    );
+    alert("Inventaris berhasil ditambahkan!");
 
     router.push("/");
   } catch (error) {
-    console.error(
-      "Error:",
-      error
-    );
+    console.error("Error:", error);
 
     alert(
-      "Terjadi kesalahan saat menyimpan data."
+      `Terjadi kesalahan: ${error.message}`
     );
   } finally {
     loading.value = false;
@@ -322,9 +345,7 @@ const simpanData = async () => {
   <div class="min-h-screen bg-slate-100 p-6">
 
     <!-- Header -->
-    <div
-      class="bg-green-700 text-white rounded-2xl p-6 shadow-lg"
-    >
+    <div class="bg-green-700 text-white rounded-2xl p-6 shadow-lg">
 
       <RouterLink
         to="/"
@@ -344,9 +365,7 @@ const simpanData = async () => {
     </div>
 
     <!-- Form -->
-    <div
-      class="bg-white rounded-2xl shadow-lg p-6 mt-6"
-    >
+    <div class="bg-white rounded-2xl shadow-lg p-6 mt-6">
 
       <div class="grid md:grid-cols-2 gap-5">
 
@@ -479,17 +498,9 @@ const simpanData = async () => {
               Pilih Persentase
             </option>
 
-            <option :value="5">
-              5%
-            </option>
-
-            <option :value="10">
-              10%
-            </option>
-
-            <option :value="20">
-              20%
-            </option>
+            <option :value="5">5%</option>
+            <option :value="10">10%</option>
+            <option :value="20">20%</option>
 
             <option value="custom">
               Custom
@@ -501,9 +512,7 @@ const simpanData = async () => {
             v-if="form.persentaseResidu === 'custom'"
             class="mt-3"
           >
-            <label
-              class="text-sm font-medium text-slate-600"
-            >
+            <label class="text-sm font-medium text-slate-600">
               Custom Persentase (%)
             </label>
 
@@ -522,26 +531,19 @@ const simpanData = async () => {
             v-if="form.persentaseResidu"
             class="mt-3 bg-emerald-50 border border-emerald-100 rounded-xl p-3"
           >
-            <p
-              class="text-xs text-slate-500"
-            >
+            <p class="text-xs text-slate-500">
               Estimasi Nilai Residu
             </p>
 
-            <p
-              class="font-bold text-emerald-700 mt-1"
-            >
+            <p class="font-bold text-emerald-700 mt-1">
               {{ formatRupiah(nilaiResidu) }}
             </p>
 
-            <p
-              class="text-xs text-slate-500 mt-1"
-            >
+            <p class="text-xs text-slate-500 mt-1">
               {{ persentaseResiduAktif }}%
               dari harga perolehan
             </p>
           </div>
-
         </div>
 
         <!-- Masa Manfaat -->
@@ -558,9 +560,7 @@ const simpanData = async () => {
             class="kotak-isian mt-2"
           />
 
-          <p
-            class="text-xs text-gray-500 mt-1"
-          >
+          <p class="text-xs text-gray-500 mt-1">
             Otomatis tersaran dari Harga
             (≥50jt → 8 thn, di bawah itu → 4 thn),
             bisa diubah manual.
@@ -601,7 +601,11 @@ const simpanData = async () => {
             v-if="selectedFile"
             class="text-green-600 text-sm mt-2"
           >
-            ✓ Foto siap diupload saat data disimpan
+            ✓ {{ selectedFile.name }} siap dikompres dan diupload
+          </p>
+
+          <p class="text-xs text-gray-500 mt-1">
+            Format gambar, maksimal 20 MB. Foto akan otomatis dikompres sebelum diupload.
           </p>
         </div>
 
@@ -628,9 +632,7 @@ const simpanData = async () => {
       </div>
 
       <!-- Tombol -->
-      <div
-        class="flex justify-end gap-3 mt-8"
-      >
+      <div class="flex justify-end gap-3 mt-8">
 
         <RouterLink
           to="/"
